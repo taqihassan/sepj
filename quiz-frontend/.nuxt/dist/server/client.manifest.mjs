@@ -1,0 +1,1 @@
+export { default } from "file:///C:/Users/Admin/OneDrive/Documents/studium/5.%20sem/sepj/quiz-frontend/node_modules/@nuxt/vite-builder/dist/runtime/client.manifest.mjs"

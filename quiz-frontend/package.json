@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "@nuxtjs/axios": "^5.13.6",
+    "axios": "^1.7.7",
+    "nuxt": "^3.13.2"
+  },
+  "scripts": {
+    "dev": "nuxt",
+    "build": "nuxt build",
+    "start": "nuxt start",
+    "generate": "nuxt generate"
+  }
+}
