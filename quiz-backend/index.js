@@ -1,48 +1,87 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const User = require('./models/User');  // Importiere das User-Modell
-const Question = require('./models/Question');  // Importiere das Question-Modell
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const User = require('./models/User'); // Importiere das User-Modell
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+const SECRET_KEY = 'your_secret_key'; // Ersetze durch einen sichereren Schlüssel
+
 // MongoDB-Verbindung herstellen
-const uri = 'mongodb+srv://wi22b002:oZAs1TPTpnaw70Ew@quiz.jsjxs.mongodb.net/?retryWrites=true&w=majority&appName=Quiz';  // Ersetze <username> und <password> mit deinen tatsächlichen Anmeldedaten
+const uri = 'mongodb+srv://wi22b002:oZAs1TPTpnaw70Ew@quiz.jsjxs.mongodb.net/?retryWrites=true&w=majority&appName=Quiz';
 mongoose.connect(uri).then(async () => {
   console.log('MongoDB erfolgreich verbunden');
 }).catch(err => {
   console.error('MongoDB-Verbindung fehlgeschlagen:', err);
 });
 
-// Route zum Erstellen von Fragen
-app.post('/questions/create', async (req, res) => {
-  const { text, options, correctAnswer, userId } = req.body;
+// Registrierungsroute
+app.post('/api/register', async (req, res) => {
+  const { username, email, password } = req.body;
 
   try {
-    // Konvertiere die userId in eine MongoDB ObjectId
-    const userObjectId = new mongoose.Types.ObjectId(userId);
+    // Überprüfe, ob die E-Mail bereits existiert
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      console.log('Registrierung fehlgeschlagen: E-Mail existiert bereits');
+      return res.status(400).json({ message: 'E-Mail existiert bereits' });
+    }
 
-    // Finde den Benutzer mit der konvertierten ObjectId
-    const user = await User.findById(userObjectId);
+    // Passwort hashen
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Erstelle einen neuen Benutzer
+    const newUser = new User({
+      username,
+      email,
+      password: hashedPassword,
+      createdQuizzes: [],
+      createdAt: new Date()
+    });
+
+    await newUser.save();
+    console.log(`Neuer Benutzer erfolgreich erstellt: ${newUser.email}`);
+
+    // Sende eine Antwort und leite den Benutzer zur Login-Seite weiter
+    res.status(201).json({ message: 'Benutzer erfolgreich erstellt' });
+  } catch (error) {
+    console.error('Fehler bei der Registrierung:', error.message);
+    res.status(500).json({ message: 'Interner Serverfehler', error: error.message });
+  }
+});
+
+app.post('/api/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // Finde den Benutzer anhand der E-Mail-Adresse
+    const user = await User.findOne({ email });
     if (!user) {
+      console.log('Login fehlgeschlagen: Benutzer nicht gefunden');
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
     }
 
-    const question = new Question({
-      text,
-      options,
-      correctAnswer,
-      createdBy: user._id  // Verknüpft die Frage mit dem Benutzer
-    });
+    // Vergleiche das eingegebene Passwort mit dem gespeicherten (gehashten) Passwort
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      console.log('Login fehlgeschlagen: Falsches Passwort');
+      return res.status(401).json({ message: 'Falsches Passwort' });
+    }
 
-    await question.save();
-    res.status(201).json({ message: 'Frage erfolgreich erstellt', question });
+    // Erstelle ein JWT-Token für die Benutzersitzung
+    const token = jwt.sign({ userId: user._id }, SECRET_KEY, { expiresIn: '1h' });
+
+    console.log(`Benutzer erfolgreich angemeldet: ${user.email}`);
+
+    // Sende das Token zurück und bestätige die Anmeldung
+    res.status(200).json({ message: 'Login erfolgreich', token });
   } catch (error) {
-    // Verbesserte Fehlerbehandlung und detailliertes Logging
-    console.error('Fehler beim Erstellen der Frage:', error.message);  // Fehlerdetails in der Konsole anzeigen
-    res.status(500).json({ message: 'Fehler beim Erstellen der Frage', error: error.message });  // Fehlerdetails an Postman zurückgeben
+    console.error('Fehler beim Login:', error.message);
+    res.status(500).json({ message: 'Interner Serverfehler', error: error.message });
   }
 });
 

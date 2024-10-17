@@ -9,6 +9,15 @@ export default defineNuxtConfig({
     enabled: true, // DevTools einschalten
   },
 
+  css: ['~/assets/css/tailwind.css'],
+
+  postcss: {
+    plugins: {
+      tailwindcss: {},
+      autoprefixer: {},
+    },
+  },
+
   // Nitro-Server für Nuxt 3 konfigurieren (für Entwicklungsport)
   nitro: {
     devServer: {
