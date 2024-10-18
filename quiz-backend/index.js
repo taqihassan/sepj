@@ -4,7 +4,7 @@ const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User'); // Importiere das User-Modell
-
+const questionsRoute = require('./routes/questions'); // Import the questions route
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -18,7 +18,7 @@ mongoose.connect(uri).then(async () => {
 }).catch(err => {
   console.error('MongoDB-Verbindung fehlgeschlagen:', err);
 });
-
+app.use('/questions', questionsRoute); // Mount questions route
 // Registrierungsroute
 app.post('/api/register', async (req, res) => {
   const { username, email, password } = req.body;
