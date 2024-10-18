@@ -30,4 +30,15 @@ router.post('/create', async (req, res) => {
   }
 });
 
+// Route to fetch all questions
+router.get('/', async (req, res) => {
+  try {
+    const questions = await Question.find(); // Fetch all questions
+    res.status(200).json(questions);
+  } catch (error) {
+    console.error('Error fetching questions:', error);
+    res.status(500).json({ message: 'Error fetching questions', error });
+  }
+});
+
 module.exports = router;
