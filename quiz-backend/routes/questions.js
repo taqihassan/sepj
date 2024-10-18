@@ -3,27 +3,30 @@ const router = express.Router();
 const Question = require('../models/Question');
 const User = require('../models/User');
 
-// Frage erstellen
+// Route to create a new question
 router.post('/create', async (req, res) => {
-  const { text, options, correctAnswer, userId } = req.body;
+  const { text, options, userId } = req.body; // No 'correctAnswer' field anymore
 
   try {
-    const user = await User.findById(userId); // Benutzer finden
+    // Find the user who is creating the question
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
     }
 
+    // Create the new question using the 'text', 'options', and 'createdBy' fields
     const question = new Question({
       text,
-      options,
-      correctAnswer,
-      createdBy: user._id
+      options, // This should be an array of objects: [{ text: String, isCorrect: Boolean }]
+      createdBy: user._id, // Store the user's ID who created the question
     });
 
-    await question.save(); // Frage in MongoDB speichern
+    // Save the question to the database
+    await question.save();
     res.status(201).json({ message: 'Frage erfolgreich erstellt', question });
   } catch (error) {
-    res.status(500).json({ message: 'Fehler beim der Frage', error });
+    console.error('Fehler beim Erstellen der Frage:', error); // Log the detailed error
+    res.status(500).json({ message: 'Fehler beim Erstellen der Frage', error: error.message });
   }
 });
 
