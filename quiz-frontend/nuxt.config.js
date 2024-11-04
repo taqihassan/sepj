@@ -11,12 +11,12 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/tailwind.css'],
 
-  postcss: {
-    plugins: {
-      tailwindcss: {},
-      autoprefixer: {},
+    postcss: {
+      plugins: {
+        tailwindcss: {},
+        autoprefixer: {},
+      },
     },
-  },
 
   // Nitro-Server für Nuxt 3 konfigurieren (für Entwicklungsport)
   nitro: {

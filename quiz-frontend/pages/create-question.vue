@@ -35,8 +35,7 @@ export default {
           { text: '', isCorrect: false },
           { text: '', isCorrect: false },
           { text: '', isCorrect: false }
-        ],
-        userId: '670fd8cdb754b88b7ebdce41' // Dummy user ID for testing, replace with actual userId
+        ]
       },
       successMessage: '',
       errorMessage: ''
@@ -44,31 +43,32 @@ export default {
   },
   methods: {
     async createQuestion() {
-  console.log(this.question); // Ensure this logs an array, not a string
-  
-  try {
-    const response = await fetch('http://localhost:3000/questions/create', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(this.question), // Ensure question.options is an array of objects
-    });
+      try {
+        const token = localStorage.getItem('token'); // Hole das Token aus dem localStorage
 
-    if (response.ok) {
-      this.successMessage = 'Frage erfolgreich erstellt!';
-      this.errorMessage = '';
-      this.resetForm();
-    } else {
-      const errorData = await response.json();
-      this.errorMessage = errorData.message || 'Fehler beim Erstellen der Frage';
-      this.successMessage = '';
-    }
-  } catch (error) {
-    this.errorMessage = 'Fehler beim Erstellen der Frage: ' + error.message;
-    this.successMessage = '';
-  }
-},
+        const response = await fetch('http://localhost:3000/questions/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` // Füge das Token im Authorization Header hinzu
+          },
+          body: JSON.stringify(this.question)
+        });
+
+        if (response.ok) {
+          this.successMessage = 'Frage erfolgreich erstellt!';
+          this.errorMessage = '';
+          this.resetForm();
+        } else {
+          const errorData = await response.json();
+          this.errorMessage = errorData.message || 'Fehler beim Erstellen der Frage';
+          this.successMessage = '';
+        }
+      } catch (error) {
+        this.errorMessage = 'Fehler beim Erstellen der Frage: ' + error.message;
+        this.successMessage = '';
+      }
+    },
     resetForm() {
       this.question = {
         text: '',
@@ -77,8 +77,7 @@ export default {
           { text: '', isCorrect: false },
           { text: '', isCorrect: false },
           { text: '', isCorrect: false }
-        ],
-        userId: '670fd8cdb754b88b7ebdce41'
+        ]
       };
     }
   }
