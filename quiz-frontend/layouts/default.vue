@@ -5,16 +5,22 @@
         <div class="container mx-auto">
           <ul class="flex space-x-4">
             <li>
-              <NuxtLink to="/" class="hover:underline">Home</NuxtLink>
+              <NuxtLink to="/" class="hover:underline">Startseite</NuxtLink>
             </li>
             <li>
               <NuxtLink to="/login" class="hover:underline">Login</NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/create-question" class="hover:underline">Create Question</NuxtLink>
+              <NuxtLink to="/create-question" class="hover:underline">Fragen erstellen</NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/create-quiz" class="hover:underline">Create Quiz</NuxtLink>
+              <NuxtLink to="/create-quiz" class="hover:underline">Quiz erstellen</NuxtLink>
+            </li>
+            <li>
+              <NuxtLink to="/edit-questions" class="hover:underline"> Fragen bearbeiten</NuxtLink>
+            </li>
+            <li>
+              <NuxtLink to="/edit-quiz" class="hover:underline">Quiz bearbeiten</NuxtLink>
             </li>
           </ul>
         </div>
