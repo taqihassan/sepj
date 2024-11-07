@@ -14,6 +14,7 @@
         <label class="block mb-2 text-lg font-medium text-gray-900 dark:text-black">Timer (in Sekunden):</label>
         <input v-model.number="quiz.timer" type="number" min="10" max="300" class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
       </div>
+      
       <!-- Existing Questions -->
       <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-black">Füge bestehende Fragen hinzu</h2>
       <div v-for="(question, index) in existingQuestions" :key="question._id" class="mb-4">
@@ -22,7 +23,9 @@
           {{ question.text }}
         </label>
       </div>
+      
       <div class="flex justify-between mt-6">
+        <!-- Button to open the Question Modal -->
         <button @click.prevent="openQuestionModal" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
           Neue Frage erstellen
         </button>
@@ -31,12 +34,17 @@
         </button>
       </div>
     </form>
+
+    <!-- Success and Error Messages -->
     <div v-if="errorMessage" class="text-red-700 bg-red-100 p-4 rounded-lg mt-8 text-center">
       {{ errorMessage }}
     </div>
     <div v-if="successMessage" class="text-green-700 bg-green-100 p-4 rounded-lg mt-8 text-center">
       {{ successMessage }}
     </div>
+
+    <!-- Question Modal -->
+    <QuestionModal v-if="showModal" @close="closeModal" @save="addNewQuestion" />
   </div>
 </template>
 
@@ -53,21 +61,22 @@ export default {
         description: '',
         timer: 30
       },
-      selectedQuestions: [],
-      existingQuestions: [],
-      showModal: false,
+      selectedQuestions: [],       // Array to store selected question IDs
+      existingQuestions: [],       // Array to store all existing questions
+      showModal: false,            // Control visibility of the QuestionModal
       successMessage: '',
       errorMessage: '',
     };
   },
   methods: {
+    // Function to create a new quiz with selected questions
     async createQuiz() {
       const token = localStorage.getItem('token');
       const quizData = {
         title: this.quiz.title,
         description: this.quiz.description,
         timer: this.quiz.timer,
-        questions: this.selectedQuestions,
+        questions: this.selectedQuestions, // Selected question IDs
       };
       try {
         const response = await axios.post('http://localhost:3000/api/quizzes/create', quizData, {
@@ -83,6 +92,8 @@ export default {
         this.successMessage = '';
       }
     },
+
+    // Function to fetch all existing questions created by the user
     async fetchQuestions() {
       const token = localStorage.getItem('token');
       try {
@@ -91,22 +102,28 @@ export default {
             Authorization: `Bearer ${token}`,
           },
         });
-        this.existingQuestions = response.data;
+        this.existingQuestions = response.data; // Load existing questions into array
       } catch (error) {
         console.error('Fehler beim Abrufen der Fragen:', error);
       }
     },
+
+    // Open and close modal methods
     openQuestionModal() {
       this.showModal = true;
     },
     closeModal() {
       this.showModal = false;
     },
+
+    // Add a new question to existingQuestions and automatically select it for the quiz
     addNewQuestion(newQuestion) {
-      this.existingQuestions.push(newQuestion);
-      this.selectedQuestions.push(newQuestion._id);
-      this.closeModal();
+      this.existingQuestions.push(newQuestion);   // Add to list of existing questions
+      this.selectedQuestions.push(newQuestion._id); // Auto-select the new question
+      this.closeModal();                           // Close the modal after saving
     },
+
+    // Reset form after successfully creating a quiz
     resetForm() {
       this.quiz.title = '';
       this.quiz.description = '';
@@ -114,6 +131,8 @@ export default {
       this.selectedQuestions = [];
     }
   },
+
+  // Fetch questions on component mount
   mounted() {
     this.fetchQuestions();
   }

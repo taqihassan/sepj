@@ -54,7 +54,7 @@
         };
   
         try {
-          const response = await axios.post('http://localhost:3000/questions/create', newQuestion, {
+          const response = await axios.post('http://localhost:3000/api/questions/create', newQuestion, {
             headers: {
               Authorization: `Bearer ${token}`
             }

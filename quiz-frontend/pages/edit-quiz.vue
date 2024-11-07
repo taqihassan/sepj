@@ -39,12 +39,19 @@
           <div class="mb-4">
             <label class="block mb-2 text-sm font-medium text-gray-900">Fragen:</label>
             <div v-for="(question, index) in currentQuiz.questions" :key="index" class="mb-2">
-              <input v-model="currentQuiz.questions[index].text" type="text" class="w-full p-2 border rounded mb-1" required />
+              <input v-model="currentQuiz.questions[index].text" type="text" class="w-full p-2 border rounded mb-1" required placeholder="Fragetext eingeben" />
+              <div v-for="(option, optIndex) in question.options" :key="optIndex" class="flex items-center mb-1">
+                <input v-model="option.text" type="text" class="w-full p-2 border rounded mr-2" placeholder="Antwortoption eingeben" required />
+                <label class="flex items-center">
+                  <input type="checkbox" v-model="option.isCorrect" class="mr-2" />
+                  Richtige Antwort
+                </label>
+              </div>
               <button type="button" @click="deleteQuestion(index)" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded">
                 Frage löschen
               </button>
             </div>
-            <button type="button" @click="addNewQuestion" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded mt-2">
+            <button type="button" @click="showQuestionModal = true" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded mt-2">
               Neue Frage hinzufügen
             </button>
           </div>
@@ -57,6 +64,9 @@
       </div>
     </div>
 
+    <!-- Question Modal for Creating New Questions -->
+    <question-modal v-if="showQuestionModal" @close="showQuestionModal = false" @save="addNewQuestion" />
+    
     <div v-if="errorMessage" class="text-red-700 bg-red-100 p-4 rounded-lg mt-8 text-center">
       {{ errorMessage }}
     </div>
@@ -68,21 +78,27 @@
 
 <script>
 import axios from 'axios';
+import QuestionModal from '../components/QuestionModal.vue'; // Corrected path
+
 
 export default {
+  components: {
+    QuestionModal
+  },
   data() {
     return {
       quizzes: [],
       showModal: false,
       modalTitle: '',
+      showQuestionModal: false, // Control question modal visibility
       currentQuiz: {
         title: '',
         description: '',
         timer: 30,
-        questions: [] // Default als leeres Array setzen
+        questions: []
       },
       errorMessage: '',
-      successMessage: '',
+      successMessage: ''
     };
   },
   methods: {
@@ -91,8 +107,8 @@ export default {
       try {
         const response = await axios.get('http://localhost:3000/api/quizzes/my-quizzes', {
           headers: {
-            Authorization: `Bearer ${token}`,
-          },
+            Authorization: `Bearer ${token}`
+          }
         });
         this.quizzes = response.data;
       } catch (error) {
@@ -120,7 +136,7 @@ export default {
         title: '',
         description: '',
         timer: 30,
-        questions: [] // Reset Fragenliste
+        questions: []
       };
     },
     async updateQuiz() {
@@ -128,32 +144,48 @@ export default {
       try {
         await axios.put(`http://localhost:3000/api/quizzes/${this.currentQuiz._id}`, this.currentQuiz, {
           headers: {
-            Authorization: `Bearer ${token}`,
-          },
+            Authorization: `Bearer ${token}`
+          }
         });
         this.successMessage = 'Quiz erfolgreich aktualisiert!';
         this.errorMessage = '';
         this.showModal = false;
-        this.fetchQuizzes(); // Aktualisiere die Liste der Quizzes
+        this.fetchQuizzes();
       } catch (error) {
         this.errorMessage = 'Fehler beim Aktualisieren des Quizzes: ' + (error.response && error.response.data ? error.response.data.message : error.message);
         this.successMessage = '';
       }
     },
-    addNewQuestion() {
-      if (this.currentQuiz && this.currentQuiz.questions) {
-        this.currentQuiz.questions.push({ text: '' });
-      }
+    async addNewQuestion(newQuestion) {
+      // Add new question to the current quiz's questions array
+      this.currentQuiz.questions.push(newQuestion);
+      this.showQuestionModal = false; // Close the modal after adding
     },
     deleteQuestion(index) {
       if (this.currentQuiz && this.currentQuiz.questions) {
         this.currentQuiz.questions.splice(index, 1);
       }
     },
+    async deleteQuiz(quizId) {
+      const token = localStorage.getItem('token');
+      try {
+        await axios.delete(`http://localhost:3000/api/quizzes/${quizId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        this.successMessage = 'Quiz erfolgreich gelöscht!';
+        this.errorMessage = '';
+        this.fetchQuizzes(); // Refresh the quizzes list
+      } catch (error) {
+        this.errorMessage = 'Fehler beim Löschen des Quizzes: ' + (error.response && error.response.data ? error.response.data.message : error.message);
+        this.successMessage = '';
+      }
+    }
   },
   mounted() {
     this.fetchQuizzes();
-  },
+  }
 };
 </script>
 

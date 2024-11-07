@@ -4,7 +4,7 @@ const Question = require('../models/Question');
 const authenticateToken = require('../middleware/authenticateToken');
 
 // Route to create a new question
-router.post('/api/create', authenticateToken, async (req, res) => {
+router.post('/create', authenticateToken, async (req, res) => {
   const { text, options } = req.body;
 
   try {
