@@ -1,11 +1,45 @@
 const express = require('express');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 const router = express.Router();
 const Quiz = require('../models/Quiz');
 const authenticateToken = require('../middleware/authenticateToken');
 
-// Route, um ein Quiz zu erstellen
+// Ensure uploads directory exists
+const uploadDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir); // Save files in the 'uploads' directory
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + '-' + file.originalname); // Unique filename with timestamp
+  }
+});
+const upload = multer({ storage });
+
+// Route to handle image uploads for quizzes
+router.post('/upload-image', authenticateToken, upload.single('image'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Kein Bild hochgeladen' });
+    }
+    // Return the path of the uploaded file
+    res.status(200).json({ imagePath: `/uploads/${req.file.filename}` });
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    res.status(500).json({ message: 'Fehler beim Hochladen des Bildes', error: error.message });
+  }
+});
+
+// Route to create a new quiz
 router.post('/create', authenticateToken, async (req, res) => {
-  const { title, description, questions, timer } = req.body;
+  const { title, description, questions, timer, image } = req.body;
   const userId = req.user.userId;
   try {
     const quiz = new Quiz({
@@ -15,6 +49,7 @@ router.post('/create', authenticateToken, async (req, res) => {
       timer,
       createdBy: userId,
       createdAt: new Date(),
+      image // Include the image path in the quiz creation
     });
     await quiz.save();
     res.status(201).json({ message: 'Quiz erfolgreich erstellt', quiz });
@@ -23,7 +58,7 @@ router.post('/create', authenticateToken, async (req, res) => {
   }
 });
 
-// Route, um alle vom Benutzer erstellten Quizzes abzurufen
+// Route to retrieve all quizzes created by the authenticated user
 router.get('/my-quizzes', authenticateToken, async (req, res) => {
   const userId = req.user.userId;
   try {
@@ -34,7 +69,7 @@ router.get('/my-quizzes', authenticateToken, async (req, res) => {
   }
 });
 
-// Route, um ein Quiz abzurufen (Bearbeitungsansicht)
+// Route to retrieve a specific quiz by ID (for editing purposes)
 router.get('/:quizId', authenticateToken, async (req, res) => {
   const { quizId } = req.params;
 
@@ -43,7 +78,7 @@ router.get('/:quizId', authenticateToken, async (req, res) => {
   }
 
   try {
-    // Populiere die Fragen, damit sie im Frontend sichtbar sind
+    // Populate the questions and createdBy fields so they are visible on the frontend
     const quiz = await Quiz.findById(quizId)
       .populate('questions')
       .populate('createdBy', 'username');
@@ -57,10 +92,10 @@ router.get('/:quizId', authenticateToken, async (req, res) => {
   }
 });
 
-// Route, um ein Quiz zu aktualisieren
+// Route to update a quiz
 router.put('/:quizId', authenticateToken, async (req, res) => {
   const { quizId } = req.params;
-  const { title, description, timer, questions } = req.body;
+  const { title, description, timer, questions, image } = req.body;
 
   if (!quizId || quizId === 'undefined') {
     return res.status(400).json({ message: 'Ungültige Quiz-ID' });
@@ -71,15 +106,16 @@ router.put('/:quizId', authenticateToken, async (req, res) => {
     if (!quiz) {
       return res.status(404).json({ message: 'Quiz nicht gefunden' });
     }
-    // Sicherstellen, dass nur der Ersteller das Quiz bearbeiten kann
+    // Ensure that only the creator can edit the quiz
     if (quiz.createdBy.toString() !== req.user.userId) {
       return res.status(403).json({ message: 'Nicht autorisiert, dieses Quiz zu bearbeiten' });
     }
 
-    // Aktualisieren der Felder
+    // Update fields
     quiz.title = title || quiz.title;
     quiz.description = description || quiz.description;
     quiz.timer = timer || quiz.timer;
+    quiz.image = image || quiz.image; // Update the image if provided
     if (questions) {
       quiz.questions = questions;
     }
@@ -91,7 +127,7 @@ router.put('/:quizId', authenticateToken, async (req, res) => {
   }
 });
 
-// Route, um ein Quiz zu löschen
+// Route to delete a quiz
 router.delete('/:quizId', authenticateToken, async (req, res) => {
   const { quizId } = req.params;
 
@@ -107,7 +143,7 @@ router.delete('/:quizId', authenticateToken, async (req, res) => {
     if (quiz.createdBy.toString() !== req.user.userId) {
       return res.status(403).json({ message: 'Nicht autorisiert, dieses Quiz zu löschen' });
     }
-    await quiz.deleteOne(); // Verwende deleteOne() statt remove(), da es empfohlen wird
+    await quiz.deleteOne(); // Use deleteOne() instead of remove()
     res.status(200).json({ message: 'Quiz erfolgreich gelöscht' });
   } catch (error) {
     console.error('Fehler beim Löschen des Quizzes:', error);

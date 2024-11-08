@@ -2,20 +2,35 @@
   <div class="container mx-auto p-8 bg-white shadow-lg rounded-lg dark:bg-gray-800">
     <h1 class="text-3xl font-bold mb-8 text-gray-900 dark:text-black text-center">Erstelle ein neues Quiz</h1>
     <form @submit.prevent="createQuiz" class="space-y-6">
+      
+      <!-- Quiz Title -->
       <div>
         <label class="block mb-2 text-lg font-medium text-gray-900 dark:text-black">Quiz Titel:</label>
         <input v-model="quiz.title" type="text" class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
       </div>
+      
+      <!-- Quiz Description -->
       <div>
         <label class="block mb-2 text-lg font-medium text-gray-900 dark:text-black">Beschreibung:</label>
         <textarea v-model="quiz.description" class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required></textarea>
       </div>
+      
+      <!-- Quiz Timer -->
       <div>
         <label class="block mb-2 text-lg font-medium text-gray-900 dark:text-black">Timer (in Sekunden):</label>
         <input v-model.number="quiz.timer" type="number" min="10" max="300" class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
       </div>
       
-      <!-- Existing Questions -->
+      <!-- Image Upload -->
+      <div>
+        <label class="block mb-2 text-lg font-medium text-gray-900 dark:text-black">Titelbild:</label>
+        <input type="file" @change="uploadImage" class="w-full p-4 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+        <div v-if="quiz.image" class="mt-4">
+          <img :src="quiz.image" alt="Titelbild Vorschau" class="max-w-full h-auto" />
+        </div>
+      </div>
+      
+      <!-- Existing Questions Selection -->
       <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-black">Füge bestehende Fragen hinzu</h2>
       <div v-for="(question, index) in existingQuestions" :key="question._id" class="mb-4">
         <label class="flex items-center text-lg text-gray-900 dark:text-black">
@@ -24,8 +39,8 @@
         </label>
       </div>
       
+      <!-- Buttons -->
       <div class="flex justify-between mt-6">
-        <!-- Button to open the Question Modal -->
         <button @click.prevent="openQuestionModal" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
           Neue Frage erstellen
         </button>
@@ -59,7 +74,8 @@ export default {
       quiz: {
         title: '',
         description: '',
-        timer: 30
+        timer: 30,
+        image: '' // URL for the uploaded image
       },
       selectedQuestions: [],       // Array to store selected question IDs
       existingQuestions: [],       // Array to store all existing questions
@@ -69,14 +85,15 @@ export default {
     };
   },
   methods: {
-    // Function to create a new quiz with selected questions
+    // Function to create a new quiz with selected questions and optional image
     async createQuiz() {
       const token = localStorage.getItem('token');
       const quizData = {
         title: this.quiz.title,
         description: this.quiz.description,
         timer: this.quiz.timer,
-        questions: this.selectedQuestions, // Selected question IDs
+        questions: this.selectedQuestions,
+        image: this.quiz.image // Include image URL in the quiz data
       };
       try {
         const response = await axios.post('http://localhost:3000/api/quizzes/create', quizData, {
@@ -108,6 +125,28 @@ export default {
       }
     },
 
+    // Upload Image Function
+    async uploadImage(event) {
+      const file = event.target.files[0];
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const token = localStorage.getItem('token');
+      try {
+        const response = await axios.post('http://localhost:3000/api/quizzes/upload-image', formData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        // Construct the full URL to display the image
+        this.quiz.image = `http://localhost:3000${response.data.imagePath}`; 
+      } catch (error) {
+        console.error('Fehler beim Hochladen des Bildes:', error.response ? error.response.data : error.message);
+        this.errorMessage = 'Fehler beim Hochladen des Bildes: ' + (error.response ? error.response.data.message : error.message);
+      }
+    },
+
     // Open and close modal methods
     openQuestionModal() {
       this.showModal = true;
@@ -128,6 +167,7 @@ export default {
       this.quiz.title = '';
       this.quiz.description = '';
       this.quiz.timer = 30;
+      this.quiz.image = '';
       this.selectedQuestions = [];
     }
   },

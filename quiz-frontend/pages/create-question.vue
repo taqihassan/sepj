@@ -18,6 +18,16 @@
           </label>
         </div>
       </div>
+
+       <!-- Image Upload -->
+        <div>
+          <label class="block mb-2 text-lg font-medium text-gray-900 dark:text-black">Titelbild:</label>
+          <input type="file" @change="uploadImage" class="w-full p-4 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+          <div v-if="question.image" class="mt-4">
+            <img :src="question.image" alt="Titelbild Vorschau" class="max-w-full h-auto" />
+          </div>
+        </div>
+        
       <div class="flex justify-center">
         <button type="submit" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
           Frage erstellen
@@ -47,13 +57,35 @@ export default {
           { text: '', isCorrect: false },
           { text: '', isCorrect: false },
           { text: '', isCorrect: false }
-        ]
+        ],
+        image: '' // New field to store image path
       },
       successMessage: '',
       errorMessage: ''
     };
   },
   methods: {
+  async uploadImage(event) {
+      const file = event.target.files[0];
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const token = localStorage.getItem('token');
+      try {
+        const response = await fetch('http://localhost:3000/api/questions/upload-image', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+        const data = await response.json();
+        this.question.image = `http://localhost:3000${data.imagePath}`; // Set the image path for preview
+      } catch (error) {
+        console.error('Fehler beim Hochladen des Bildes:', error);
+        this.errorMessage = 'Fehler beim Hochladen des Bildes';
+      }
+    },
     async createQuestion() {
       try {
         const token = localStorage.getItem('token'); // Hole das Token aus dem localStorage
@@ -89,7 +121,8 @@ export default {
           { text: '', isCorrect: false },
           { text: '', isCorrect: false },
           { text: '', isCorrect: false }
-        ]
+        ],
+        image:'' //Reset image field
       };
     }
   }

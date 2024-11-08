@@ -1,3 +1,4 @@
+// models/Quiz.js
 const mongoose = require('mongoose');
 
 const quizSchema = new mongoose.Schema({
@@ -21,6 +22,10 @@ const quizSchema = new mongoose.Schema({
   timer: {
     type: Number, // Timer in Sekunden, der für jede Frage gilt
     required: true
+  },
+  image: {
+    type: String, // URL or file path to the image
+    required: false
   },
   createdAt: {
     type: Date,

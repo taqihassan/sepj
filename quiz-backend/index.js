@@ -24,6 +24,7 @@ mongoose.connect(uri).then(async () => {
 });
 
 // Routen einrichten
+app.use('/uploads', express.static('uploads'));
 app.use('/api/questions', questionsRoute);
 app.use('/api/quizzes', quizzesRoute);
 

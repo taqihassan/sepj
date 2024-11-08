@@ -6,12 +6,12 @@ const questionSchema = new Schema({
   options: [
     {
       text: { type: String, required: true },
-      isCorrect: { type: Boolean, default: false } // Boolean to mark the correct answers
+      isCorrect: { type: Boolean, default: false }
     }
   ],
+  image: { type: String }, // New field to store image path
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now }
 });
 
 module.exports = mongoose.model('Question', questionSchema);
-
