@@ -81,7 +81,35 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Route to update a specific question by ID
+// Route to update a specific question by ID with optional image upload
+router.put('/update-image/:id', authenticateToken, upload.single('image'), async (req, res) => {
+  const { id } = req.params;
+  const { text, options } = req.body;
+
+  try {
+    const question = await Question.findById(id);
+    if (!question) {
+      return res.status(404).json({ message: 'Frage nicht gefunden' });
+    }
+
+    // Update question details
+    question.text = text;
+    question.options = JSON.parse(options); // Parse options if sent as a JSON string
+
+    // If a new image was uploaded, update the image field
+    if (req.file) {
+      question.image = `/uploads/${req.file.filename}`;
+    }
+
+    await question.save();
+    res.status(200).json({ message: 'Frage erfolgreich aktualisiert', question });
+  } catch (error) {
+    console.error('Fehler beim Aktualisieren der Frage:', error);
+    res.status(500).json({ message: 'Fehler beim Aktualisieren der Frage', error: error.message });
+  }
+});
+
+// Standard route to update question details without image upload
 router.put('/:id', authenticateToken, async (req, res) => {
   const { text, options, image } = req.body;
 

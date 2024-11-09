@@ -35,21 +35,42 @@
             <input v-model.number="currentQuiz.timer" type="number" min="10" max="300" class="w-full p-2 border rounded" required />
           </div>
 
-          <!-- Fragen anzeigen und bearbeiten -->
+          <!-- Display current image if available -->
+          <div v-if="currentQuiz.image" class="mb-4">
+  <label class="block mb-2 text-sm font-medium text-gray-900">Aktuelles Titelbild:</label>
+  <img :src="getImageUrl(currentQuiz.image)" alt="Quiz Titelbild" class="w-full h-32 object-cover rounded-lg mb-2" />
+</div>
+
+          <!-- Image Upload for New Title Image -->
+          <div class="mb-4">
+            <label class="block mb-2 text-sm font-medium text-gray-900">Titelbild ändern:</label>
+            <input type="file" @change="handleImageUpload" class="w-full p-2 border rounded" accept="image/*" />
+          </div>
+
+          <!-- Fragen anzeigen und bearbeiten mit Dropdown -->
           <div class="mb-4">
             <label class="block mb-2 text-sm font-medium text-gray-900">Fragen:</label>
             <div v-for="(question, index) in currentQuiz.questions" :key="index" class="mb-2">
-              <input v-model="currentQuiz.questions[index].text" type="text" class="w-full p-2 border rounded mb-1" required placeholder="Fragetext eingeben" />
-              <div v-for="(option, optIndex) in question.options" :key="optIndex" class="flex items-center mb-1">
-                <input v-model="option.text" type="text" class="w-full p-2 border rounded mr-2" placeholder="Antwortoption eingeben" required />
-                <label class="flex items-center">
-                  <input type="checkbox" v-model="option.isCorrect" class="mr-2" />
-                  Richtige Antwort
-                </label>
+              <div class="flex justify-between items-center">
+                <input v-model="currentQuiz.questions[index].text" type="text" class="w-full p-2 border rounded mb-1" required placeholder="Fragetext eingeben" />
+                <button @click="toggleOptions(index)" type="button" class="ml-2 text-gray-500 focus:outline-none">
+                  <span v-if="question.showOptions">▼</span>
+                  <span v-else>▶</span>
+                </button>
               </div>
-              <button type="button" @click="deleteQuestion(index)" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded">
-                Frage löschen
-              </button>
+
+              <!-- Answer options as read-only information -->
+              <div v-show="question.showOptions" class="mt-2 ml-4 border-l-2 border-gray-300 pl-4">
+                <div v-for="(option, optIndex) in question.options" :key="optIndex" class="flex items-center mb-1">
+                  <p class="w-full p-2 border rounded bg-gray-100 dark:bg-gray-700 mr-2 flex items-center justify-between">
+                    <span>{{ option.text }}</span>
+                    <span v-if="option.isCorrect" class="text-green-600 font-semibold">✔</span>
+                  </p>
+                </div>
+              </div>
+              <button type="button" @click="deleteQuestion(index)" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded mt-2">
+                  Frage löschen
+                </button>
             </div>
             <button type="button" @click="showQuestionModal = true" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded mt-2">
               Neue Frage hinzufügen
@@ -78,8 +99,7 @@
 
 <script>
 import axios from 'axios';
-import QuestionModal from '../components/QuestionModal.vue'; // Corrected path
-
+import QuestionModal from '../components/QuestionModal.vue';
 
 export default {
   components: {
@@ -95,8 +115,10 @@ export default {
         title: '',
         description: '',
         timer: 30,
-        questions: []
+        questions: [],
+        image: '' // Store current image filename if available
       },
+      selectedImageFile: null, // Track the selected image file for uploading
       errorMessage: '',
       successMessage: ''
     };
@@ -136,17 +158,35 @@ export default {
         title: '',
         description: '',
         timer: 30,
-        questions: []
+        questions: [],
+        image: ''
       };
+      this.selectedImageFile = null;
     },
     async updateQuiz() {
       const token = localStorage.getItem('token');
       try {
+        // Update the quiz details first
         await axios.put(`http://localhost:3000/api/quizzes/${this.currentQuiz._id}`, this.currentQuiz, {
           headers: {
             Authorization: `Bearer ${token}`
           }
         });
+
+        // If a new image file was selected, upload it
+        if (this.selectedImageFile) {
+          const formData = new FormData();
+          formData.append('image', this.selectedImageFile);
+          formData.append('quizId', this.currentQuiz._id);
+          
+          await axios.post('http://localhost:3000/api/quizzes/upload-image', formData, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data'
+            }
+          });
+        }
+
         this.successMessage = 'Quiz erfolgreich aktualisiert!';
         this.errorMessage = '';
         this.showModal = false;
@@ -156,15 +196,22 @@ export default {
         this.successMessage = '';
       }
     },
+    handleImageUpload(event) {
+      this.selectedImageFile = event.target.files[0];
+    },
+    getImageUrl(imagePath) {
+    return `http://localhost:3000${imagePath}`;
+  },
     async addNewQuestion(newQuestion) {
-      // Add new question to the current quiz's questions array
+      newQuestion.showOptions = false;
       this.currentQuiz.questions.push(newQuestion);
-      this.showQuestionModal = false; // Close the modal after adding
+      this.showQuestionModal = false;
+    },
+    toggleOptions(index) {
+      this.currentQuiz.questions[index].showOptions = !this.currentQuiz.questions[index].showOptions;
     },
     deleteQuestion(index) {
-      if (this.currentQuiz && this.currentQuiz.questions) {
-        this.currentQuiz.questions.splice(index, 1);
-      }
+      this.currentQuiz.questions.splice(index, 1);
     },
     async deleteQuiz(quizId) {
       const token = localStorage.getItem('token');
@@ -176,7 +223,7 @@ export default {
         });
         this.successMessage = 'Quiz erfolgreich gelöscht!';
         this.errorMessage = '';
-        this.fetchQuizzes(); // Refresh the quizzes list
+        this.fetchQuizzes();
       } catch (error) {
         this.errorMessage = 'Fehler beim Löschen des Quizzes: ' + (error.response && error.response.data ? error.response.data.message : error.message);
         this.successMessage = '';

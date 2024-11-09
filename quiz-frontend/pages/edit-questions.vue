@@ -30,16 +30,30 @@
             <label class="block mb-2 text-sm font-medium text-gray-900">Fragetext:</label>
             <input v-model="questionToEdit.text" type="text" class="w-full p-2 border rounded" required />
           </div>
+
+          <!-- Display current image if available -->
+          <div v-if="questionToEdit.image" class="mb-4">
+  <label class="block mb-2 text-sm font-medium text-gray-900">Aktuelles Bild:</label>
+  <img :src="getImageUrl(questionToEdit.image)" alt="Fragenbild" class="w-full h-32 object-cover rounded-lg mb-2" />
+</div>
+
+          <!-- Image Upload for New Image -->
+          <div class="mb-4">
+            <label class="block mb-2 text-sm font-medium text-gray-900">Bild ändern:</label>
+            <input type="file" @change="handleImageUpload" class="w-full p-2 border rounded" accept="image/*" />
+          </div>
+
           <div class="mb-4">
             <label class="block mb-2 text-sm font-medium text-gray-900">Antwortmöglichkeiten:</label>
             <div v-for="(option, index) in questionToEdit.options" :key="index" class="mb-2">
               <input v-model="option.text" type="text" class="w-full p-2 border rounded mb-1" required />
               <label class="flex items-center">
-                <input type="checkbox" v-model="option.isCorrect" class="mr-2" />
+                <input type="checkbox" v-model="option.isCorrect" class="mr-2" disabled />
                 Richtige Antwort
               </label>
             </div>
           </div>
+
           <div class="flex justify-end">
             <button type="button" @click="cancelEdit" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2">
               Abbrechen
@@ -60,10 +74,11 @@ import axios from 'axios';
 export default {
   data() {
     return {
-      userQuestions: [], // List of questions created by the logged-in user
-      questionToEdit: null, // Question object to edit
+      userQuestions: [],
+      questionToEdit: null,
       successMessage: '',
       errorMessage: '',
+      selectedImageFile: null, // To store the new image file
     };
   },
   methods: {
@@ -78,11 +93,10 @@ export default {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }); // Fetch user's questions
+        });
         this.userQuestions = response.data;
-        this.errorMessage = ''; // Clear error message if request is successful
+        this.errorMessage = '';
       } catch (error) {
-        console.error('Fehler beim Abrufen der Fragen:', error);
         this.errorMessage = 'Fehler beim Abrufen der Fragen.';
       }
     },
@@ -93,47 +107,71 @@ export default {
         return;
       }
       try {
-        await axios.delete(`http://localhost:3000/api/questions/${questionId}`, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.delete(`http://localhost:3000/api/questions/${questionId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         this.successMessage = 'Frage erfolgreich gelöscht!';
-        this.errorMessage = '';
         this.fetchUserQuestions();
       } catch (error) {
-        console.error('Fehler beim Löschen der Frage:', error);
         this.errorMessage = 'Fehler beim Löschen der Frage.';
-        this.successMessage = '';
       }
     },
     selectQuestionToEdit(question) {
-      this.questionToEdit = JSON.parse(JSON.stringify(question)); // Clone the question object to avoid direct binding
+      this.questionToEdit = JSON.parse(JSON.stringify(question));
+      this.selectedImageFile = null;
     },
     cancelEdit() {
       this.questionToEdit = null;
+      this.selectedImageFile = null;
     },
+    handleImageUpload(event) {
+      this.selectedImageFile = event.target.files[0];
+    },
+    getImageUrl(imagePath) {
+    return `http://localhost:3000${imagePath}`;
+  },
     async updateQuestion() {
       const token = localStorage.getItem('token');
       if (!token) {
         this.errorMessage = 'Benutzer ist nicht authentifiziert. Bitte melden Sie sich an.';
         return;
       }
+
       try {
-        await axios.put(`http://localhost:3000/api/questions/${this.questionToEdit._id}`, this.questionToEdit, {
+        const formData = new FormData();
+        formData.append('text', this.questionToEdit.text);
+        formData.append('options', JSON.stringify(this.questionToEdit.options));
+
+        // Append image file if a new image is selected
+        if (this.selectedImageFile) {
+          formData.append('image', this.selectedImageFile);
+        }
+
+        await axios.put(`http://localhost:3000/api/questions/update-image/${this.questionToEdit._id}`, formData, {
           headers: {
             Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
           },
         });
+
         this.successMessage = 'Frage erfolgreich aktualisiert!';
-        this.errorMessage = '';
-        this.questionToEdit = null;
         this.fetchUserQuestions();
+        this.cancelEdit();
       } catch (error) {
-        console.error('Fehler beim Aktualisieren der Frage:', error);
         this.errorMessage = 'Fehler beim Aktualisieren der Frage.';
-        this.successMessage = '';
       }
     },
   },
   mounted() {
-    this.fetchUserQuestions(); // Fetch user's questions when the component is mounted
+    this.fetchUserQuestions();
   },
 };
 </script>
+
+<style scoped>
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px;
+}
+</style>

@@ -24,13 +24,18 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Route to handle image uploads for quizzes
-router.post('/upload-image', authenticateToken, upload.single('image'), (req, res) => {
+router.post('/upload-image', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'Kein Bild hochgeladen' });
     }
-    // Return the path of the uploaded file
-    res.status(200).json({ imagePath: `/uploads/${req.file.filename}` });
+    const quizId = req.body.quizId;
+    const imagePath = `/uploads/${req.file.filename}`;
+
+    // Update quiz document with new image path
+    await Quiz.findByIdAndUpdate(quizId, { image: imagePath });
+
+    res.status(200).json({ imagePath });
   } catch (error) {
     console.error('Error uploading image:', error);
     res.status(500).json({ message: 'Fehler beim Hochladen des Bildes', error: error.message });
