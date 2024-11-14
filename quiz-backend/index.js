@@ -4,6 +4,7 @@ const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
+const Quiz = require('./models/Quiz'); // Füge das Quiz Modell hinzu
 
 // Routen für die Erstellung von Fragen und Quiz
 const quizzesRoute = require('./routes/quizzes');
@@ -67,6 +68,25 @@ app.post('/api/login', async (req, res) => {
     res.status(200).json({ message: 'Login erfolgreich', token });
   } catch (error) {
     res.status(500).json({ message: 'Interner Serverfehler', error: error.message });
+  }
+});
+
+// Neue Route zum Abrufen eines bestimmten Quizzes basierend auf der quizId
+app.get('/api/quizzes/:quizId', async (req, res) => {
+  const { quizId } = req.params;
+
+  if (!quizId || quizId === 'undefined') {
+    return res.status(400).json({ message: 'Ungültige Quiz-ID' });
+  }
+
+  try {
+    const quiz = await Quiz.findById(quizId).populate('questions');
+    if (!quiz) {
+      return res.status(404).json({ message: 'Quiz nicht gefunden' });
+    }
+    res.status(200).json(quiz);
+  } catch (error) {
+    res.status(500).json({ message: 'Fehler beim Abrufen des Quizzes', error: error.message });
   }
 });
 

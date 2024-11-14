@@ -1,25 +1,26 @@
 <template>
-    <section class="bg-gray-50 dark:bg-white-900">
-
-  <div class="container mx-auto p-8 bg-grey shadow-lg rounded-lg  mx-auto md:h-screen lg:py-0">
-    <h1 class="text-3xl font-bold mb-8 text-gray-900 dark:text-black text-center">Frage erstellen</h1>
-    <form @submit.prevent="createQuestion" class="space-y-6">
-      <div>
-        <label for="question-text" class="block mb-2 text-lg font-medium text-gray-900 dark:text-black">Fragetext:</label>
-        <input id="question-text" v-model="question.text" type="text" class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Gib deine Frage ein" required />
-      </div>
-      <div>
-        <label class="block mb-4 text-lg font-medium text-gray-900 dark:text-black">Antwortmöglichkeiten:</label>
-        <div v-for="(option, index) in question.options" :key="index" class="mb-6">
-          <input v-model="option.text" type="text" :placeholder="'Option ' + (index + 1)" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-2" required />
-          <label class="flex items-center text-sm font-medium text-gray-900 dark:text-black">
-            <input type="checkbox" v-model="option.isCorrect" class="mr-2 focus:ring-blue-500" />
-            Richtige Antwort
-          </label>
+  <section class="bg-gray-50 dark:bg-white-900">
+    <div class="container mx-auto p-8 bg-grey shadow-lg rounded-lg mx-auto md:h-screen lg:py-0">
+      <h1 class="text-3xl font-bold mb-8 text-gray-900 dark:text-black text-center">Frage erstellen</h1>
+      <form @submit.prevent="createQuestion" class="space-y-6">
+        <div>
+          <label for="question-text" class="block mb-2 text-lg font-medium text-gray-900 dark:text-black">Fragetext:</label>
+          <input id="question-text" v-model="question.text" type="text" class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Gib deine Frage ein" required />
         </div>
-      </div>
+        <div>
+          <label class="block mb-4 text-lg font-medium text-gray-900 dark:text-black">Antwortmöglichkeiten:</label>
+          <div v-for="(option, index) in question.options" :key="index" class="mb-6">
+            <input v-model="option.text" type="text" :placeholder="'Option ' + (index + 1)" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-2" required />
+            <label class="flex items-center text-sm font-medium text-gray-900 dark:text-black">
+              <input type="checkbox" v-model="option.isCorrect" class="mr-2 focus:ring-blue-500" />
+              Richtige Antwort
+            </label>
+            <button @click="removeAnswer(index)" v-if="question.options.length > 2" type="button" class="text-red-500 hover:text-red-700 mt-2">Antwort entfernen</button>
+          </div>
+          <button @click="addAnswer" v-if="question.options.length < 4" type="button" class="text-blue-500 hover:text-blue-700 font-bold mt-4">Antwort hinzufügen</button>
+        </div>
 
-       <!-- Image Upload -->
+        <!-- Image Upload -->
         <div>
           <label class="block mb-2 text-lg font-medium text-gray-900 dark:text-black">Titelbild:</label>
           <input type="file" @change="uploadImage" class="w-full p-4 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
@@ -27,23 +28,22 @@
             <img :src="question.image" alt="Titelbild Vorschau" class="max-w-full h-auto" />
           </div>
         </div>
-        
-      <div class="flex justify-center">
-        <button type="submit" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
-          Frage erstellen
-        </button>
+
+        <div class="flex justify-center">
+          <button type="submit" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
+            Frage erstellen
+          </button>
+        </div>
+      </form>
+
+      <div v-if="successMessage" class="text-green-700 bg-green-100 p-4 rounded-lg mt-8 text-center">
+        {{ successMessage }}
       </div>
-    </form>
-
-    <div v-if="successMessage" class="text-green-700 bg-green-100 p-4 rounded-lg mt-8 text-center">
-      {{ successMessage }}
+      <div v-if="errorMessage" class="text-red-700 bg-red-100 p-4 rounded-lg mt-8 text-center">
+        {{ errorMessage }}
+      </div>
     </div>
-    <div v-if="errorMessage" class="text-red-700 bg-red-100 p-4 rounded-lg mt-8 text-center">
-      {{ errorMessage }}
-    </div>
-  </div>
-</section>
-
+  </section>
 </template>
 
 <script>
@@ -54,8 +54,6 @@ export default {
         text: '',
         options: [
           { text: '', isCorrect: false },
-          { text: '', isCorrect: false },
-          { text: '', isCorrect: false },
           { text: '', isCorrect: false }
         ],
         image: '' // New field to store image path
@@ -65,7 +63,17 @@ export default {
     };
   },
   methods: {
-  async uploadImage(event) {
+    addAnswer() {
+      if (this.question.options.length < 4) {
+        this.question.options.push({ text: '', isCorrect: false });
+      }
+    },
+    removeAnswer(index) {
+      if (this.question.options.length > 2) {
+        this.question.options.splice(index, 1);
+      }
+    },
+    async uploadImage(event) {
       const file = event.target.files[0];
       const formData = new FormData();
       formData.append('image', file);
@@ -87,6 +95,13 @@ export default {
       }
     },
     async createQuestion() {
+      // Validation to ensure at least one correct answer is selected
+      const correctAnswers = this.question.options.filter(option => option.isCorrect);
+      if (correctAnswers.length === 0) {
+        this.errorMessage = 'Bitte markieren Sie mindestens eine Antwort als richtig.';
+        return;
+      }
+
       try {
         const token = localStorage.getItem('token'); // Hole das Token aus dem localStorage
 
@@ -118,11 +133,9 @@ export default {
         text: '',
         options: [
           { text: '', isCorrect: false },
-          { text: '', isCorrect: false },
-          { text: '', isCorrect: false },
           { text: '', isCorrect: false }
         ],
-        image:'' //Reset image field
+        image: '' // Reset image field
       };
     }
   }

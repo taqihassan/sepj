@@ -8,6 +8,9 @@
       <h2 class="text-2xl font-bold mb-2 text-gray-800 dark:text-black">{{ quiz.title }}</h2>
       <p class="text-gray-700 dark:text-gray-400">{{ quiz.description }}</p>
       <div class="flex justify-end mt-4 space-x-4">
+        <button @click="duplicateQuiz(quiz._id)" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
+          Duplizieren
+        </button>
         <button @click="editQuiz(quiz)" class="bg-yellow-600 hover:bg-yellow-800 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-4 focus:ring-yellow-500 focus:ring-opacity-50">
           Bearbeiten
         </button>
@@ -37,9 +40,9 @@
 
           <!-- Display current image if available -->
           <div v-if="currentQuiz.image" class="mb-4">
-  <label class="block mb-2 text-sm font-medium text-gray-900">Aktuelles Titelbild:</label>
-  <img :src="getImageUrl(currentQuiz.image)" alt="Quiz Titelbild" class="w-full h-32 object-cover rounded-lg mb-2" />
-</div>
+            <label class="block mb-2 text-sm font-medium text-gray-900">Aktuelles Titelbild:</label>
+            <img :src="getImageUrl(currentQuiz.image)" alt="Quiz Titelbild" class="w-full h-32 object-cover rounded-lg mb-2" />
+          </div>
 
           <!-- Image Upload for New Title Image -->
           <div class="mb-4">
@@ -199,9 +202,25 @@ export default {
     handleImageUpload(event) {
       this.selectedImageFile = event.target.files[0];
     },
+    async duplicateQuiz(quizId) {
+      const token = localStorage.getItem('token');
+      try {
+        const response = await axios.post(`http://localhost:3000/api/quizzes/duplicate/${quizId}`, null, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        this.successMessage = 'Quiz erfolgreich dupliziert!';
+        this.errorMessage = '';
+        this.fetchQuizzes(); // Refresh the quizzes list
+      } catch (error) {
+        this.errorMessage = 'Fehler beim Duplizieren des Quizzes: ' + (error.response && error.response.data ? error.response.data.message : error.message);
+        this.successMessage = '';
+      }
+    },
     getImageUrl(imagePath) {
     return `http://localhost:3000${imagePath}`;
-  },
+    },
     async addNewQuestion(newQuestion) {
       newQuestion.showOptions = false;
       this.currentQuiz.questions.push(newQuestion);

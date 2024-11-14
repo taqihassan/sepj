@@ -5,6 +5,7 @@ const path = require('path');
 const router = express.Router();
 const Quiz = require('../models/Quiz');
 const authenticateToken = require('../middleware/authenticateToken');
+const Question = require('../models/Question');
 
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, '../uploads');
@@ -153,6 +154,54 @@ router.delete('/:quizId', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Fehler beim Löschen des Quizzes:', error);
     res.status(500).json({ message: 'Fehler beim Löschen des Quizzes', error: error.message });
+  }
+});
+
+// Route to duplicate a quiz
+router.post('/duplicate/:quizId', authenticateToken, async (req, res) => {
+  const { quizId } = req.params;
+  const userId = req.user.userId;
+
+  try {
+    // Find the original quiz and populate its questions
+    const originalQuiz = await Quiz.findById(quizId).populate('questions');
+
+    if (!originalQuiz) {
+      return res.status(404).json({ message: 'Original-Quiz nicht gefunden' });
+    }
+
+    // Duplicate each question associated with the original quiz
+    const duplicatedQuestions = await Promise.all(
+      originalQuiz.questions.map(async (question) => {
+        const newQuestion = new Question({
+          text: question.text,
+          options: question.options.map((option) => ({
+            text: option.text,
+            isCorrect: option.isCorrect,
+          })),
+          image: question.image, // Retain the image path for the duplicated question
+          createdBy: userId,
+        });
+        return await newQuestion.save();
+      })
+    );
+
+    // Create the duplicated quiz
+    const duplicatedQuiz = new Quiz({
+      title: `${originalQuiz.title} (Kopie)`,
+      description: originalQuiz.description,
+      timer: originalQuiz.timer,
+      questions: duplicatedQuestions.map((q) => q._id), // Reference the new question IDs
+      image: originalQuiz.image, // Retain the image of the original quiz
+      createdBy: userId,
+    });
+
+    await duplicatedQuiz.save();
+
+    res.status(201).json({ message: 'Quiz erfolgreich dupliziert', quiz: duplicatedQuiz });
+  } catch (error) {
+    console.error('Fehler beim Duplizieren des Quizzes:', error);
+    res.status(500).json({ message: 'Fehler beim Duplizieren des Quizzes', error: error.message });
   }
 });
 
