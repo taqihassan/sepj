@@ -5,6 +5,9 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 const Quiz = require('./models/Quiz'); // Füge das Quiz Modell hinzu
+const Results = require('./routes/results'); // Füge das Results Modell hinzu
+const Feedback = require('./routes/feedback'); // Feedback-Routen hinzufügen
+
 
 // Routen für die Erstellung von Fragen und Quiz
 const quizzesRoute = require('./routes/quizzes');
@@ -28,6 +31,10 @@ mongoose.connect(uri).then(async () => {
 app.use('/uploads', express.static('uploads'));
 app.use('/api/questions', questionsRoute);
 app.use('/api/quizzes', quizzesRoute);
+app.use('/api/results', Results);
+app.use('/api/quizzes', quizzesRoute);
+app.use('/api/feedback', Feedback); // Feedback-Routen hinzufügen
+
 
 // Registrierungsroute
 app.post('/api/register', async (req, res) => {
@@ -62,14 +69,15 @@ app.post('/api/login', async (req, res) => {
     }
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Falsches Passwort' });
+      return res.status(401).json({ message: 'Ungültiges Passwort' });
     }
     const token = jwt.sign({ userId: user._id }, SECRET_KEY, { expiresIn: '1h' });
-    res.status(200).json({ message: 'Login erfolgreich', token });
+    res.status(200).json({ message: 'Login erfolgreich', token, userId: user._id }); // Include userId
   } catch (error) {
     res.status(500).json({ message: 'Interner Serverfehler', error: error.message });
   }
 });
+
 
 // Neue Route zum Abrufen eines bestimmten Quizzes basierend auf der quizId
 app.get('/api/quizzes/:quizId', async (req, res) => {
@@ -95,3 +103,4 @@ const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Server läuft auf Port ${PORT}`);
 });
+

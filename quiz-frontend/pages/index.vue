@@ -1,70 +1,59 @@
 <template>
-  <div class="quiz-selection-container">
-    <h1 class="text-3xl font-bold mb-8 text-gray-900 text-center">Wähle ein Quiz zum Spielen</h1>
-    <div v-if="quizzes.length === 0" class="text-center text-gray-700">
-      Keine Quizzes gefunden.
-    </div>
-    <div v-for="quiz in quizzes" :key="quiz._id" class="quiz-card mb-4 p-4 border rounded-lg shadow-md">
-      <h2 class="text-2xl font-bold">{{ quiz.title }}</h2>
-      <p class="mb-2">{{ quiz.description }}</p>
-      <div v-if="quiz.image" class="mb-4">
-        <img :src="quiz.image" alt="Quiz Bild" class="w-full h-32 object-cover rounded-lg" />
+  <div class="container mx-auto p-6">
+    <h1 class="text-3xl font-bold text-center mb-6">Willkommen im Quizsystem</h1>
+    <div class="flex justify-center mt-4">
+  <button @click="handleQuizStart" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4">
+    Quiz starten
+  </button>
+</div>
+
+    
+    <div v-if="showPopup" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+        <h2 class="text-xl font-bold mb-4">Anmeldung erforderlich</h2>
+        <p class="mb-4">Bitte melde dich an, um das Quiz zu starten.</p>
+        <div class="flex justify-end">
+          <button @click="goToLogin" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded">
+            Zum Login
+          </button>
+        </div>
       </div>
-      <button @click="startQuiz(quiz)" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-lg focus:outline-none">
-        Quiz starten
-      </button>
     </div>
+    
   </div>
 </template>
 
 <script>
-import axios from 'axios';
-
 export default {
   data() {
     return {
-      quizzes: [] // Array für alle Quizzes des Nutzers
+      showPopup: false,
+      isAuthenticated: false // Standardmäßig auf "nicht authentifiziert" setzen
     };
   },
-  mounted() {
-    this.fetchQuizzes();
-  },
   methods: {
-    async fetchQuizzes() {
-      const token = localStorage.getItem('token');
-      try {
-        const response = await axios.get('http://localhost:3000/api/quizzes/my-quizzes', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        this.quizzes = response.data;
-      } catch (error) {
-        console.error('Fehler beim Abrufen der Quizzes:', error);
-      }
+    handleQuizStart() {
+      
+        this.navigateToMode(); // Navigiert zum Modus, wenn der Benutzer angemeldet ist
+      
     },
-    startQuiz(quiz) {
-      console.log('Quiz Objekt:', quiz); // Debugging: Überprüfe das Quiz-Objekt
-
-      // Prüfen, ob das Quiz-Objekt und die quizId definiert sind
-      if (quiz && quiz._id) {
-        console.log('quizId:', quiz._id);  // Überprüfe, ob `quiz._id` korrekt definiert ist
-
-        // Falls quizId vorhanden ist, weiterleiten zur dynamischen QuizStart-Seite
-        this.$router.push({path: `/QuizStart/${quiz._id}`});
-      } else {
-        console.error('Quiz ID nicht definiert oder ungültiges Quiz-Objekt. Überprüfe die Eingabe.');
-      }
+    goToLogin() {
+      this.showPopup = false;
+      // Hier könntest du den Benutzer zur Login-Seite leiten, wo er sich anmelden muss
+      this.$router.push({ name: 'login' });
+    },
+    navigateToMode() {
+      this.$router.push({ name: 'modus' });
+    },
+    login() {
+      // Dies ist ein einfaches Beispiel; in der Realität würdest du hier den Login-Prozess abbilden
+      this.isAuthenticated = true; // Setze isAuthenticated auf true, wenn der Benutzer erfolgreich angemeldet ist
+      this.showPopup = false;
     }
   }
 };
 </script>
 
 <style scoped>
-.quiz-selection-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 40px;
-  background-color: #f9fafb;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
+/* Keine benutzerdefinierten Styles erforderlich, alle Stile basieren auf Tailwind CSS */
 </style>

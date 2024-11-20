@@ -39,10 +39,9 @@
           </div>
 
           <!-- Display current image if available -->
-          <div v-if="currentQuiz.image" class="mb-4">
-            <label class="block mb-2 text-sm font-medium text-gray-900">Aktuelles Titelbild:</label>
-            <img :src="getImageUrl(currentQuiz.image)" alt="Quiz Titelbild" class="w-full h-32 object-cover rounded-lg mb-2" />
-          </div>
+          <div v-if="currentQuiz.image">
+          <img :src="currentQuiz.image" alt="Quiz Bild" class="w-full h-32 object-cover rounded-lg" />
+        </div>
 
           <!-- Image Upload for New Title Image -->
           <div class="mb-4">

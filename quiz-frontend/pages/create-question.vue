@@ -1,6 +1,5 @@
 <template>
-  <section class="bg-gray-50 dark:bg-white-900">
-    <div class="container mx-auto p-8 bg-grey shadow-lg rounded-lg mx-auto md:h-screen lg:py-0">
+<section class="bg-gray-50 dark:bg-blue-200 min-h-screen flex items-center">    <div class="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0 w-full max-w-screen-xl">
       <h1 class="text-3xl font-bold mb-8 text-gray-900 dark:text-black text-center">Frage erstellen</h1>
       <form @submit.prevent="createQuestion" class="space-y-6">
         <div>
@@ -25,7 +24,7 @@
           <label class="block mb-2 text-lg font-medium text-gray-900 dark:text-black">Titelbild:</label>
           <input type="file" @change="uploadImage" class="w-full p-4 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
           <div v-if="question.image" class="mt-4">
-            <img :src="question.image" alt="Titelbild Vorschau" class="max-w-full h-auto" />
+            <img :src="question.image1" alt="Titelbild Vorschau" class="max-w-full h-auto" />
           </div>
         </div>
 
@@ -88,7 +87,8 @@ export default {
           body: formData
         });
         const data = await response.json();
-        this.question.image = `http://localhost:3000${data.imagePath}`; // Set the image path for preview
+        this.question.image1 = `http://localhost:3000${data.imagePath}`; // Set the image path for preview
+        this.question.image = `${data.imagePath}`; // Set the image path for preview
       } catch (error) {
         console.error('Fehler beim Hochladen des Bildes:', error);
         this.errorMessage = 'Fehler beim Hochladen des Bildes';
@@ -142,13 +142,4 @@ export default {
 };
 </script>
 
-<style scoped>
-.container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 40px;
-  background-color: #f9fafb;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-</style>
+

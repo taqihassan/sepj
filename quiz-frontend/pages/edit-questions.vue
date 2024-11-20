@@ -1,3 +1,4 @@
+
 <template>
   <div class="container mx-auto p-6">
     <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Meine Fragen bearbeiten</h1>
