@@ -11,6 +11,9 @@
         <button @click="duplicateQuiz(quiz._id)" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
           Duplizieren
         </button>
+        <button @click="showFeedback(quiz._id)" class="bg-green-600 hover:bg-green-800 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
+        Feedback
+        </button>
         <button @click="editQuiz(quiz)" class="bg-yellow-600 hover:bg-yellow-800 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-4 focus:ring-yellow-500 focus:ring-opacity-50">
           Bearbeiten
         </button>
@@ -97,6 +100,33 @@
       {{ successMessage }}
     </div>
   </div>
+
+<!-- Modal für Feedback -->
+<div v-if="showFeedbackModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+  <div class="bg-white p-6 rounded-lg w-full max-w-lg">
+    <h2 class="text-xl font-bold mb-4">{{ modalTitle }}</h2>
+    <table class="w-full border-collapse border border-gray-300">
+      <thead>
+        <tr>
+          <th class="border border-gray-300 p-2">Feedback</th>
+          <th class="border border-gray-300 p-2">Benutzer</th>
+          <th class="border border-gray-300 p-2">Datum</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="feedback in currentFeedback" :key="feedback._id">
+          <td class="border border-gray-300 p-2">{{ feedback.feedbackText }}</td>
+          <td class="border border-gray-300 p-2">{{ feedback.userId?.username || 'Anonym' }}</td>
+          <td class="border border-gray-300 p-2">{{ new Date(feedback.createdAt).toLocaleString() }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <button @click="closeFeedbackModal" class="mt-4 bg-red-600 text-white font-bold py-2 px-4 rounded">
+      Schließen
+    </button>
+  </div>
+</div>
+
 </template>
 
 <script>
@@ -113,6 +143,10 @@ export default {
       showModal: false,
       modalTitle: '',
       showQuestionModal: false, // Control question modal visibility
+      showFeedbackModal: false,
+      currentFeedback: [], // Feedback-Daten für das Modal
+      errorMessage: '',
+      successMessage: '',
       currentQuiz: {
         title: '',
         description: '',
@@ -126,6 +160,30 @@ export default {
     };
   },
   methods: {
+   async showFeedback(quizId) {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.get(`http://localhost:3000/api/feedback/${quizId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.data.length === 0) {
+        alert('Keine Feedbacks für dieses Quiz vorhanden.');
+        return;
+      }
+      this.currentFeedback = response.data;
+      this.modalTitle = 'Feedback für das Quiz';
+      this.showFeedbackModal = true;
+    } catch (error) {
+      console.error('Fehler beim Abrufen des Feedbacks:', error.message);
+      alert('Fehler beim Abrufen des Feedbacks.');
+    }
+  },
+  closeFeedbackModal() {
+    this.showFeedbackModal = false;
+    this.currentFeedback = [];
+  },
     async fetchQuizzes() {
       const token = localStorage.getItem('token');
       try {

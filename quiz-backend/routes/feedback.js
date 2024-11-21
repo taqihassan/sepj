@@ -30,4 +30,15 @@ router.post('/submit', authenticateToken, async (req, res) => {
   }
 });
 
+router.get('/:quizId', authenticateToken, async (req, res) => {
+  const { quizId } = req.params;
+  try {
+    const feedbacks = await Feedback.find({ quizId }).populate('userId', 'username');
+    res.status(200).json(feedbacks);
+  } catch (error) {
+    console.error('Fehler beim Abrufen der Feedbacks:', error.message);
+    res.status(500).json({ message: 'Fehler beim Abrufen der Feedbacks', error: error.message });
+  }
+});
+
 module.exports = router;
