@@ -90,26 +90,42 @@ export default {
         });
         this.selectedQuiz = response.data;
         if (this.selectedQuiz && this.selectedQuiz.questions.length > 0) {
-          this.startTimer();
+          this.Timer();
         }
       } catch (error) {
         console.error('Fehler beim Laden des Quizzes:', error);
       }
     },
-    startTimer() {
-      if (this.timerInterval) {
-        clearInterval(this.timerInterval);
+    Timer() {
+  if (this.timerInterval) {
+    clearInterval(this.timerInterval);
+  }
+  this.timer = this.selectedQuiz?.timer || 0;
+  this.timerInterval = setInterval(() => {
+    if (this.timer > 0) {
+      this.timer--;
+    } else {
+      clearInterval(this.timerInterval);
+      
+      // Überprüfe, ob es sich um die letzte Frage handelt
+      if (this.currentQuestionIndex === this.selectedQuiz.questions.length - 1) {
+        // Letzte Frage unbeantwortet, dann wird das Quiz als abgeschlossen betrachtet
+        this.userAnswers.push({
+          text: "Keine Antwort",
+          isCorrect: false,
+          correctAnswer: this.selectedQuiz.questions[this.currentQuestionIndex].options.find(opt => opt.isCorrect)?.text || "",
+        });
+
+        // Setze quizCompleted auf true und leite zur Ergebnis-Seite weiter
+        this.quizCompleted = true;
+        this.completeQuiz(); // Quiz beenden und auf die Ergebnisseite weiterleiten
+      } else {
+        // Wenn es nicht die letzte Frage ist, einfach die Antwort als "Keine Antwort" aufzeichnen
+        this.answerQuestion(null);
       }
-      this.timer = this.selectedQuiz?.timer || 0;
-      this.timerInterval = setInterval(() => {
-        if (this.timer > 0) {
-          this.timer--;
-        } else {
-          clearInterval(this.timerInterval);
-          this.answerQuestion(null);
-        }
-      }, 1000);
-    },
+    }
+  }, 1000);
+},
     async answerQuestion(option) {
   const question = this.selectedQuiz.questions[this.currentQuestionIndex];
   let isCorrect = option && option.isCorrect;
@@ -121,18 +137,27 @@ export default {
     correctAnswer: question.options.find(opt => opt.isCorrect)?.text || "",
   });
 
-  // Punkte basierend auf Zeit und Richtigkeit berechnen
+  // Punkteberechnung mit Abzug alle 0,5 Sekunden und Multiplikator für mehrere richtige Antworten hintereinander
+  let maxPoints = 1000;
+  let totalTime = this.selectedQuiz.timer; // Gesamtzeit des Timers
+  let pointsPerHalfSecond = maxPoints / (totalTime * 2); // Punkteabzug alle 0,5 Sekunden
+
+  let timePenalty = (totalTime - this.timer) * 2 * pointsPerHalfSecond; // Berechnet den Punktabzug basierend auf der verstrichenen Zeit
+  let scoreForQuestion = maxPoints - timePenalty;
+
+  // Multiplikator für mehrere richtig beantwortete Fragen hintereinander
   if (isCorrect) {
-    let maxPoints = 1000;
-    let timeFactor = Math.max(0, this.timer) / this.selectedQuiz.timer;
-    let scoreForQuestion = maxPoints * timeFactor;
-    this.score += scoreForQuestion;
+    this.consecutiveCorrect = (this.consecutiveCorrect || 0) + 1;
+    let multiplier = this.consecutiveCorrect > 1 ? 1 + (this.consecutiveCorrect - 1) * 0.1 : 1;
+    this.score += scoreForQuestion * multiplier;
+  } else {
+    this.consecutiveCorrect = 0; // Bei einer falschen Antwort wird der Zähler zurückgesetzt
   }
 
   // Wenn noch Fragen übrig sind, weiter zur nächsten Frage
   if (this.currentQuestionIndex < this.selectedQuiz.questions.length - 1) {
     this.currentQuestionIndex++;
-    this.startTimer();
+    this.Timer();
   } else {
     this.quizCompleted = true; // Setze quizCompleted auf true
     await this.completeQuiz(); // Quiz beenden
@@ -143,9 +168,12 @@ async completeQuiz() {
   this.quizCompleted = true;
 
   try {
-    await axios.post(`http://localhost:3000/api/quizzes/complete/${this.selectedQuiz._id}`, {
+    const response = await axios.post(`http://localhost:3000/api/results/save`, {
+      quizId: this.selectedQuiz._id,
       userId: localStorage.getItem('userId'),
       score: this.score,
+      title: this.selectedQuiz.title,
+      description: this.selectedQuiz.description,
       userAnswers: this.userAnswers,
     }, {
       headers: {
@@ -154,12 +182,14 @@ async completeQuiz() {
       },
     });
 
-    // Leite zur Ergebnis-Seite weiter, wenn das Quiz erfolgreich abgeschlossen wurde
+    // Extract the `resultId` from the server response
+    const resultId = response.data.resultId;
+
+    // Redirect to the results page with the resultId
     this.$router.push({
       name: 'results',
       query: {
-        userId: localStorage.getItem('userId'),
-        quizId: this.selectedQuiz._id
+        resultId,
       },
     });
   } catch (error) {
