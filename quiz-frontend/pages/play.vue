@@ -9,9 +9,9 @@
         
         <!-- Bild der Frage -->
         <div v-if="selectedQuiz.questions[currentQuestionIndex].image" class="image-container">
-          <img :src="selectedQuiz.questions[currentQuestionIndex].image" alt="Fragenbild" class="question-image">
+          <img :src="getQuestionImage(selectedQuiz.questions[currentQuestionIndex].image)" alt="Fragenbild" class="question-image">
         </div>
-        
+
         <!-- Text der Frage -->
         <h2 class="text-xl font-bold mt-4 text-center">Frage {{ currentQuestionIndex + 1 }}</h2>
         <p class="text-center mb-4">{{ selectedQuiz.questions[currentQuestionIndex].text }}</p>
@@ -81,6 +81,12 @@ export default {
     }
   },
   methods: {
+    getQuestionImage(imagePath) {
+    if (imagePath.startsWith('/uploads')) {
+      return `http://localhost:3000${imagePath}`;
+    }
+    return imagePath;
+  },
     async loadQuiz(quizId) {
       try {
         const response = await axios.get(`http://localhost:3000/api/quizzes/play/${quizId}`, {
