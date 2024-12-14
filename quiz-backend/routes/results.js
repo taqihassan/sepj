@@ -3,6 +3,36 @@ const router = express.Router();
 const FinishedQuiz = require('../models/FinishedQuiz');
 const authenticateToken = require('../middleware/authenticateToken');
 
+router.get('/dashboard', authenticateToken, async (req, res) => {
+  try {
+    const results = await FinishedQuiz.find()
+      .populate('quizId', 'title') // Quiz-Titel
+      .populate('userId', 'username') // Username des Benutzers
+      .sort({ createdAt: -1 }); // Sortiere nach dem neuesten Ergebnis
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.error('Fehler beim Abrufen der Ergebnisse:', error.message);
+    res.status(500).json({ message: 'Fehler beim Abrufen der Ergebnisse', error: error.message });
+  }
+});
+
+router.get('/all-results', authenticateToken, async (req, res) => {
+  try {
+    const results = await FinishedQuiz.find()
+      .populate('quizId', 'title') // Quiz-Titel hinzufügen
+      .populate('userId', 'username') // Benutzername hinzufügen
+      .sort({ createdAt: -1 }); // Ergebnisse nach Datum sortieren
+
+    res.status(200).json(results); // Rückgabe aller Ergebnisse
+  } catch (error) {
+    console.error('Fehler beim Abrufen aller Ergebnisse:', error.message);
+    res.status(500).json({ message: 'Fehler beim Abrufen der Ergebnisse', error: error.message });
+  }
+});
+
+
+
 // Route to save the results of a finished quiz
 router.post('/save', authenticateToken, async (req, res) => {
     const { quizId, score, title, description, userAnswers } = req.body;
