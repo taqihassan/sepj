@@ -31,6 +31,29 @@ router.get('/all-results', authenticateToken, async (req, res) => {
   }
 });
 
+router.get('/leaderboard/:quizId', authenticateToken, async (req, res) => {
+  try {
+    const { quizId } = req.params; // Quiz-ID aus der URL
+    if (!quizId) {
+      return res.status(400).json({ message: 'Quiz-ID fehlt!' });
+    }
+
+    // Ergebnisse für das angegebene Quiz filtern und nach Punkten sortieren
+    const leaderboard = await FinishedQuiz.find({ quizId })
+      .populate('userId', 'username') // Benutzername hinzufügen
+      .populate('quizId', 'title') // Quiz-Titel hinzufügen (optional)
+      .sort({ score: -1 }) // Ergebnisse nach Punkten absteigend sortieren
+      .limit(10); // Optional: Begrenze auf die Top 10
+
+    res.status(200).json(leaderboard);
+  } catch (error) {
+    console.error('Fehler beim Abrufen des Leaderboards pro Quiz:', error.message);
+    res.status(500).json({ message: 'Fehler beim Abrufen des Leaderboards pro Quiz', error: error.message });
+  }
+});
+
+
+
 
 
 // Route to save the results of a finished quiz
