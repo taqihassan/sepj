@@ -22,6 +22,13 @@ export default defineNuxtConfig({
   nitro: {
     devServer: {
       port: 3001, // Ändere den Port des Frontends auf 3001
+      host: '0.0.0.0', // Akzeptiere Verbindungen von allen IP-Adressen
+    },
+    devProxy: {
+      '/api': {
+        target: 'http://192.x.x.x:3000', // Ersetze mit deiner lokalen IP-Adresse für das Backend
+        changeOrigin: true,
+      },
     },
   },
 

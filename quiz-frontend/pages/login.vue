@@ -11,40 +11,54 @@ export default {
     };
   },
   methods: {
-    async login(event) {
-      // Verhindert das automatische Neuladen der Seite beim Abschicken des Formulars
-      event.preventDefault();
+  async login(event) {
+    // Verhindert das automatische Neuladen der Seite beim Abschicken des Formulars
+    event.preventDefault();
+    console.log("Login-Daten werden gesendet:", { email: this.email, password: this.password });
 
-      try {
-        const response = await axios.post('http://localhost:3000/api/login', {
-          email: this.email,
-          password: this.password
-        });
-        console.log('Login erfolgreich:', response.data);
+    try {
+      const response = await this.$axios.post('/api/login', {
+        email: this.email,
+        password: this.password,
+      });
 
-        // Token und userId speichern (localStorage oder Cookies)
-        if (typeof window !== "undefined") {
-          localStorage.setItem('token', response.data.token);
-          localStorage.setItem('userId', response.data.userId); // Assuming your backend returns userId
-        }
+      console.log('Login erfolgreich:', response.data);
 
-        // Weiterleitung zu einer geschützten Seite (z.B. Quiz-Dashboard)
-        this.$router.push('/dashboard');
-
-        // Fehler ausblenden, falls Login erfolgreich ist
-        this.showError = false;
-        this.errorMessage = '';
-      } catch (error) {
-        // Setze die Fehlermeldung und zeige das Pop-up an
-        this.showError = true;
-        this.errorMessage = error.response?.data?.message || 'Ein unbekannter Fehler ist aufgetreten';
-        console.error('Fehler beim Login:', this.errorMessage);
+      // Token und userId speichern (localStorage oder Cookies)
+      if (typeof window !== "undefined") {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('userId', response.data.userId); // Assuming your backend returns userId
       }
-    },
-    closeModal() {
-      this.showError = false; // Pop-up schließen
+
+      // Weiterleitung zu einer geschützten Seite (z.B. Quiz-Dashboard)
+      this.$router.push('/dashboard');
+
+      // Fehler ausblenden, falls Login erfolgreich ist
+      this.showError = false;
+      this.errorMessage = '';
+    } catch (error) {
+      // Debugging-Logs für Fehler
+      console.error('Fehler beim Login:', error);
+      if (error.response) {
+        console.error('Antwort vom Server:', error.response.data);
+        console.error('Status:', error.response.status);
+        console.error('Header:', error.response.headers);
+      } else if (error.request) {
+        console.error('Keine Antwort vom Server erhalten:', error.request);
+      } else {
+        console.error('Fehler beim Konfigurieren der Anfrage:', error.message);
+      }
+
+      // Setze die Fehlermeldung und zeige das Pop-up an
+      this.showError = true;
+      this.errorMessage = error.response?.data?.message || 'Ein unbekannter Fehler ist aufgetreten';
     }
+  },
+  closeModal() {
+    this.showError = false; // Pop-up schließen
   }
+}
+
 };
 </script>
 
