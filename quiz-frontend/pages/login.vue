@@ -6,8 +6,8 @@ export default {
     return {
       email: '',
       password: '',
-      showError: false, // Zustand zur Steuerung des Pop-ups
-      errorMessage: '' // Fehlermeldungstext
+      showError: false,
+      errorMessage: '',
     };
   },
   methods: {
@@ -25,17 +25,14 @@ export default {
       console.log('Login erfolgreich:', response.data);
 
       // Token und userId speichern (localStorage oder Cookies)
-      if (typeof window !== "undefined") {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('userId', response.data.userId); // Assuming your backend returns userId
-      }
+      localStorage.setItem('token', response.data.token);
+      window.dispatchEvent(new Event('loginStatusChanged'));
 
       // Weiterleitung zu einer geschützten Seite (z.B. Quiz-Dashboard)
       this.$router.push('/dashboard');
 
       // Fehler ausblenden, falls Login erfolgreich ist
-      this.showError = false;
-      this.errorMessage = '';
+      
     } catch (error) {
       // Debugging-Logs für Fehler
       console.error('Fehler beim Login:', error);

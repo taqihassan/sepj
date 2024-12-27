@@ -18,7 +18,7 @@ const io = new Server(server, {
   cors: {
     origin: [
       "http://localhost:3001",  // Für lokale Entwicklung auf deinem Rechner
-      "http://192.x.x.x:3001" // Ersetze 192.168.x.x mit deiner lokalen IP-Adresse
+      "http://192.168.0.112:3001" // Ersetze 192.168.x.x mit deiner lokalen IP-Adresse
     ],
     methods: ["GET", "POST"],
   },
@@ -31,7 +31,7 @@ const PORT = 3000;
 app.use(cors({
   origin: [
     "http://localhost:3001",  // Für lokale Entwicklung
-    "http://192.x.x.x:3001" // Für Zugriff vom Handy oder anderen Geräten (lokale IP-Adresse)
+    "http://192.168.0.112:3001" // Für Zugriff vom Handy oder anderen Geräten (lokale IP-Adresse)
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,

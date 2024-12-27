@@ -26,7 +26,7 @@ export default defineNuxtConfig({
     },
     devProxy: {
       '/api': {
-        target: 'http://192.x.x.x:3000', // Ersetze mit deiner lokalen IP-Adresse für das Backend
+        target: 'http://192.168.0.112:3000', // Ersetze mit deiner lokalen IP-Adresse für das Backend
         changeOrigin: true,
       },
     },
