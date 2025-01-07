@@ -52,7 +52,7 @@ export default {
     async loadResult() {
   try {
     // Use the `resultId` to fetch the result
-    const response = await axios.get(`http://localhost:3000/api/results/${this.resultId}`, {
+    const response = await this.$axios.get(`/api/results/${this.resultId}`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`,
       },

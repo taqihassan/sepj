@@ -4,9 +4,8 @@
       {{ selectedQuiz ? selectedQuiz.title : "Quiz spielen" }}
     </h1>
 
-    <div v-if="selectedQuiz && currentQuestionIndex < selectedQuiz.questions.length">
+    <div v-if="selectedQuiz && currentQuestionIndex < selectedQuiz.questions.length && !quizCompleted">
       <div class="question-container p-6 bg-white rounded-lg shadow">
-        
         <!-- Bild der Frage -->
         <div v-if="selectedQuiz.questions[currentQuestionIndex].image" class="image-container">
           <img :src="getQuestionImage(selectedQuiz.questions[currentQuestionIndex].image)" alt="Fragenbild" class="question-image">
@@ -22,6 +21,7 @@
             <button
               @click="answerQuestion(option)"
               class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
+              :disabled="waitingForOthers"
             >
               {{ option.text }}
             </button>
@@ -29,6 +29,10 @@
         </div>
 
         <div class="timer mt-4">Zeit verbleibend: {{ timer }} Sekunden</div>
+
+        <div v-if="waitingForOthers" class="waiting mt-4 text-center text-gray-500">
+          Warten auf andere Teilnehmer...
+        </div>
       </div>
     </div>
 
@@ -60,7 +64,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import { io } from "socket.io-client";
 
 export default {
   data() {
@@ -72,147 +76,118 @@ export default {
       quizCompleted: false,
       timerInterval: null,
       userAnswers: [],
+      results: [],
+      socket: null,
+      roomCode: "",
+      waitingForOthers: false, // Neuer Zustand für das Warten auf andere
     };
   },
-  created() {
-    const quizId = this.$route.query.quizId;
-    if (quizId) {
-      this.loadQuiz(quizId);
+  async created() {
+    try {
+      if (process.client) {
+        const username = localStorage.getItem("username");
+        if (!username) {
+          alert("Du bist nicht eingeloggt. Bitte melde dich an.");
+          this.$router.push({ name: "login" });
+          return;
+        }
+
+        const response = await this.$axios.get('/api/ip');
+        this.serverIp = response.data.ip;
+
+        this.socket = io(`http://${this.serverIp}:3000`);
+       
+        const quizId = this.$route.query.quizId;
+        if (quizId) {
+          await this.loadQuiz(quizId);
+        }
+
+        this.roomCode = this.$route.query.roomCode;
+        this.socket.emit("join-room", {
+          roomCode: this.roomCode,
+          username: username,
+        });
+
+        this.socket.on("next-question", (data) => {
+          this.selectedQuiz = { questions: [data.question] };
+          this.currentQuestionIndex = 0;
+          this.timer = data.timer;
+          this.waitingForOthers = false; // Beendet den Wartestatus
+          this.startTimer();
+        });
+
+        this.socket.on("timer-update", (data) => {
+          this.timer = data.timer;
+          if (this.timer <= 0) {
+            clearInterval(this.timerInterval);
+          }
+        });
+
+        this.socket.on("quiz-finished", (data) => {
+          this.results = data.results;
+          this.quizCompleted = true;
+        });
+      }
+    } catch (error) {
+      console.error("Fehler beim Abrufen der IP-Adresse oder bei der Verbindung:", error);
     }
   },
+
   methods: {
     getQuestionImage(imagePath) {
-    if (imagePath.startsWith('/uploads')) {
-      return `http://localhost:3000${imagePath}`;
-    }
-    return imagePath;
-  },
+      return imagePath.startsWith("/uploads") ? `/uploads${imagePath}` : imagePath;
+    },
     async loadQuiz(quizId) {
       try {
-        const response = await axios.get(`http://localhost:3000/api/quizzes/play/${quizId}`, {
+        const response = await this.$axios.get(`/api/quizzes/play/${quizId}`, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
         this.selectedQuiz = response.data;
         if (this.selectedQuiz && this.selectedQuiz.questions.length > 0) {
-          this.Timer();
+          this.startTimer();
         }
       } catch (error) {
-        console.error('Fehler beim Laden des Quizzes:', error);
+        console.error("Fehler beim Laden des Quizzes:", error);
       }
     },
-    Timer() {
-  if (this.timerInterval) {
-    clearInterval(this.timerInterval);
-  }
-  this.timer = this.selectedQuiz?.timer || 0;
-  this.timerInterval = setInterval(() => {
-    if (this.timer > 0) {
-      this.timer--;
-    } else {
-      clearInterval(this.timerInterval);
-      
-      // Überprüfe, ob es sich um die letzte Frage handelt
-      if (this.currentQuestionIndex === this.selectedQuiz.questions.length - 1) {
-        // Letzte Frage unbeantwortet, dann wird das Quiz als abgeschlossen betrachtet
-        this.userAnswers.push({
-          text: "Keine Antwort",
-          isCorrect: false,
-          correctAnswer: this.selectedQuiz.questions[this.currentQuestionIndex].options.find(opt => opt.isCorrect)?.text || "",
-        });
-
-        // Setze quizCompleted auf true und leite zur Ergebnis-Seite weiter
-        this.quizCompleted = true;
-        this.completeQuiz(); // Quiz beenden und auf die Ergebnisseite weiterleiten
-      } else {
-        // Wenn es nicht die letzte Frage ist, einfach die Antwort als "Keine Antwort" aufzeichnen
-        this.answerQuestion(null);
+    startTimer() {
+      if (this.timerInterval) {
+        clearInterval(this.timerInterval);
       }
-    }
-  }, 1000);
-},
-    async answerQuestion(option) {
-  const question = this.selectedQuiz.questions[this.currentQuestionIndex];
-  let isCorrect = option && option.isCorrect;
+      this.timerInterval = setInterval(() => {
+        if (this.timer > 0) {
+          this.timer--;
+        } else {
+          clearInterval(this.timerInterval);
+          this.answerQuestion(null);
+        }
+      }, 1000);
+    },
+    answerQuestion(option) {
+      const question = this.selectedQuiz.questions[this.currentQuestionIndex];
+      this.waitingForOthers = true; // Setzt den Wartestatus
+      this.socket.emit("submit-answer", {
+        roomCode: this.roomCode,
+        answer: option ? option.text : "Keine Antwort",
+      });
 
-  // Antwort des Benutzers speichern
-  this.userAnswers.push({
-    text: option ? option.text : "Keine Antwort",
-    isCorrect: isCorrect,
-    correctAnswer: question.options.find(opt => opt.isCorrect)?.text || "",
-  });
-
-  // Punkteberechnung mit Abzug alle 0,5 Sekunden und Multiplikator für mehrere richtige Antworten hintereinander
-  let maxPoints = 1000;
-  let totalTime = this.selectedQuiz.timer; // Gesamtzeit des Timers
-  let pointsPerHalfSecond = maxPoints / (totalTime * 2); // Punkteabzug alle 0,5 Sekunden
-
-  let timePenalty = (totalTime - this.timer) * 2 * pointsPerHalfSecond; // Berechnet den Punktabzug basierend auf der verstrichenen Zeit
-  let scoreForQuestion = maxPoints - timePenalty;
-
-  // Multiplikator für mehrere richtig beantwortete Fragen hintereinander
-  if (isCorrect) {
-    this.consecutiveCorrect = (this.consecutiveCorrect || 0) + 1;
-    let multiplier = this.consecutiveCorrect > 1 ? 1 + (this.consecutiveCorrect - 1) * 0.1 : 1;
-    this.score += scoreForQuestion * multiplier;
-  } else {
-    this.consecutiveCorrect = 0; // Bei einer falschen Antwort wird der Zähler zurückgesetzt
-  }
-
-  // Wenn noch Fragen übrig sind, weiter zur nächsten Frage
-  if (this.currentQuestionIndex < this.selectedQuiz.questions.length - 1) {
-    this.currentQuestionIndex++;
-    this.Timer();
-  } else {
-    this.quizCompleted = true; // Setze quizCompleted auf true
-    await this.completeQuiz(); // Quiz beenden
-  }
-},
-async completeQuiz() {
-  clearInterval(this.timerInterval);
-  this.quizCompleted = true;
-
-  try {
-    const response = await axios.post(`http://localhost:3000/api/results/save`, {
-      quizId: this.selectedQuiz._id,
-      userId: localStorage.getItem('userId'),
-      score: this.score,
-      title: this.selectedQuiz.title,
-      description: this.selectedQuiz.description,
-      userAnswers: this.userAnswers,
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-    });
-
-    // Extract the `resultId` from the server response
-    const resultId = response.data.resultId;
-
-    // Redirect to the results page with the resultId
-    this.$router.push({
-      name: 'results',
-      query: {
-        resultId,
-      },
-    });
-  } catch (error) {
-    console.error('Fehler beim Abschließen des Quizzes:', error);
-  }
-},
+      if (option && option.isCorrect) {
+        this.score += 100;
+      }
+    },
     reviewQuiz() {
       this.currentQuestionIndex = 0;
       this.quizCompleted = false;
     },
     goToHomePage() {
-      this.$router.push({ name: 'home' });
+      this.$router.push({ name: "home" });
     },
     giveFeedback() {
-      this.$router.push({ name: 'feedback', params: { quizId: this.selectedQuiz._id } });
-    }
-  }
+      this.$router.push({ name: "feedback", params: { quizId: this.selectedQuiz._id } });
+    },
+  },
 };
 </script>
 

@@ -11,51 +11,48 @@ export default {
     };
   },
   methods: {
-  async login(event) {
-    // Verhindert das automatische Neuladen der Seite beim Abschicken des Formulars
-    event.preventDefault();
-    console.log("Login-Daten werden gesendet:", { email: this.email, password: this.password });
+    async login(event) {
+      // Verhindert das automatische Neuladen der Seite beim Abschicken des Formulars
+      event.preventDefault();
+      console.log('Login-Daten werden gesendet:', { email: this.email, password: this.password });
 
-    try {
-      const response = await this.$axios.post('/api/login', {
-        email: this.email,
-        password: this.password,
+      try {
+        const response = await this.$axios.post('/api/login', {
+      email: this.email,
+      password: this.password,
       });
 
-      console.log('Login erfolgreich:', response.data);
+        console.log('Login erfolgreich:', response.data);
 
-      // Token und userId speichern (localStorage oder Cookies)
-      localStorage.setItem('token', response.data.token);
-      window.dispatchEvent(new Event('loginStatusChanged'));
+        // Token und Username speichern
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('username', response.data.username); // Speichert den Benutzernamen
+        window.dispatchEvent(new Event('loginStatusChanged'));
 
-      // Weiterleitung zu einer geschützten Seite (z.B. Quiz-Dashboard)
-      this.$router.push('/dashboard');
+        // Weiterleitung zu einer geschützten Seite (z.B. Dashboard)
+        this.$router.push('/dashboard');
+      } catch (error) {
+        // Debugging-Logs für Fehler
+        console.error('Fehler beim Login:', error);
+        if (error.response) {
+          console.error('Antwort vom Server:', error.response.data);
+          console.error('Status:', error.response.status);
+          console.error('Header:', error.response.headers);
+        } else if (error.request) {
+          console.error('Keine Antwort vom Server erhalten:', error.request);
+        } else {
+          console.error('Fehler beim Konfigurieren der Anfrage:', error.message);
+        }
 
-      // Fehler ausblenden, falls Login erfolgreich ist
-      
-    } catch (error) {
-      // Debugging-Logs für Fehler
-      console.error('Fehler beim Login:', error);
-      if (error.response) {
-        console.error('Antwort vom Server:', error.response.data);
-        console.error('Status:', error.response.status);
-        console.error('Header:', error.response.headers);
-      } else if (error.request) {
-        console.error('Keine Antwort vom Server erhalten:', error.request);
-      } else {
-        console.error('Fehler beim Konfigurieren der Anfrage:', error.message);
+        // Setze die Fehlermeldung und zeige das Pop-up an
+        this.showError = true;
+        this.errorMessage = error.response?.data?.message || 'Ein unbekannter Fehler ist aufgetreten';
       }
-
-      // Setze die Fehlermeldung und zeige das Pop-up an
-      this.showError = true;
-      this.errorMessage = error.response?.data?.message || 'Ein unbekannter Fehler ist aufgetreten';
-    }
+    },
+    closeModal() {
+      this.showError = false; // Pop-up schließen
+    },
   },
-  closeModal() {
-    this.showError = false; // Pop-up schließen
-  }
-}
-
 };
 </script>
 

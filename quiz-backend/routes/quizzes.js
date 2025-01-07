@@ -246,6 +246,30 @@ router.get('/results/:userId/:quizId', authenticateToken, async (req, res) => {
 
 // Quiz bearbeiten
 
+
+// Route to retrieve a specific quiz by ID (for editing purposes)
+router.get('/:quizId', authenticateToken, async (req, res) => {
+  const { quizId } = req.params;
+
+  if (!quizId || quizId === 'undefined') {
+    return res.status(400).json({ message: 'Ungültige Quiz-ID' });
+  }
+
+  try {
+    // Populate the questions and createdBy fields so they are visible on the frontend
+    const quiz = await Quiz.findById(quizId)
+      .populate('questions')
+      .populate('createdBy', 'username');
+
+    if (!quiz) {
+      return res.status(404).json({ message: 'Quiz nicht gefunden' });
+    }
+    res.status(200).json(quiz);
+  } catch (error) {
+    res.status(500).json({ message: 'Fehler beim Abrufen des Quizzes', error: error.message });
+  }
+});
+
 router.post('/duplicate/:quizId', authenticateToken, async (req, res) => {
   const { quizId } = req.params;
   const userId = req.user.userId;

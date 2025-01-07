@@ -23,7 +23,7 @@ export default {
 
       try {
         // Sende die Registrierungsdaten an das Backend
-        const response = await axios.post('http://localhost:3000/api/register', {
+        const response = await this.$axios.post('/api/register', {
           username: this.name,
           email: this.email,
           password: this.password

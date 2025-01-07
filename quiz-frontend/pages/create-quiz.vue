@@ -113,7 +113,7 @@ export default {
     image: this.quiz.image // Include image URL in the quiz data
   };
   try {
-    const response = await axios.post('http://localhost:3000/api/quizzes/create', quizData, {
+    const response = await this.$axios.post('/api/quizzes/create', quizData, {
       headers: {
         Authorization: `Bearer ${token}`,
       }
@@ -132,7 +132,7 @@ export default {
     async fetchQuestions() {
       const token = localStorage.getItem('token');
       try {
-        const response = await axios.get('http://localhost:3000/api/questions/my-questions', {
+        const response = await this.$axios.get('/api/questions/my-questions', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -151,7 +151,7 @@ export default {
 
       const token = localStorage.getItem('token');
       try {
-        const response = await axios.post('http://localhost:3000/api/quizzes/upload-image', formData, {
+        const response = await this.$axios.post('/api/quizzes/upload-image', formData, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'multipart/form-data'

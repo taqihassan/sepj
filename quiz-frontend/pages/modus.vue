@@ -116,10 +116,11 @@ export default {
     },
     startQuiz() {
       if (this.socket) {
-        this.socket.emit('start-quiz', this.roomCode);
-        alert('Quiz gestartet!');
-      }
-    },
+    // Quiz im Raum starten
+    this.socket.emit('start-quiz', this.roomCode);
+    alert('Quiz gestartet!');
+  }
+},
   },
 };
 </script>

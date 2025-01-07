@@ -90,7 +90,7 @@ export default {
         return;
       }
       try {
-        const response = await axios.get('http://localhost:3000/api/questions/my-questions', {
+        const response = await this.$axios.get('/api/questions/my-questions', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -108,7 +108,7 @@ export default {
         return;
       }
       try {
-        await axios.delete(`http://localhost:3000/api/questions/${questionId}`, {
+        await this.$axios.delete(`/api/questions/${questionId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         this.successMessage = 'Frage erfolgreich gelöscht!';
@@ -148,7 +148,7 @@ export default {
           formData.append('image', this.selectedImageFile);
         }
 
-        await axios.put(`http://localhost:3000/api/questions/update-image/${this.questionToEdit._id}`, formData, {
+        await this.$axios.put(`/api/questions/update-image/${this.questionToEdit._id}`, formData, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data'

@@ -163,7 +163,7 @@ export default {
    async showFeedback(quizId) {
     const token = localStorage.getItem('token');
     try {
-      const response = await axios.get(`http://localhost:3000/api/feedback/${quizId}`, {
+      const response = await this.$axios.get(`/api/feedback/${quizId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -187,7 +187,7 @@ export default {
     async fetchQuizzes() {
       const token = localStorage.getItem('token');
       try {
-        const response = await axios.get('http://localhost:3000/api/quizzes/my-quizzes', {
+        const response = await this.$axios.get('/api/quizzes/my-quizzes', {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -200,7 +200,7 @@ export default {
     async editQuiz(quiz) {
       const token = localStorage.getItem('token');
       try {
-        const response = await axios.get(`http://localhost:3000/api/quizzes/${quiz._id}`, {
+        const response = await this.$axios.get(`/api/quizzes/${quiz._id}`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -227,7 +227,7 @@ export default {
       const token = localStorage.getItem('token');
       try {
         // Update the quiz details first
-        await axios.put(`http://localhost:3000/api/quizzes/${this.currentQuiz._id}`, this.currentQuiz, {
+        await this.$axios.put(`/api/quizzes/${this.currentQuiz._id}`, this.currentQuiz, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -239,7 +239,7 @@ export default {
           formData.append('image', this.selectedImageFile);
           formData.append('quizId', this.currentQuiz._id);
           
-          await axios.post('http://localhost:3000/api/quizzes/upload-image', formData, {
+          await this.$axios.post('/api/quizzes/upload-image', formData, {
             headers: {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'multipart/form-data'
@@ -262,7 +262,7 @@ export default {
     async duplicateQuiz(quizId) {
       const token = localStorage.getItem('token');
       try {
-        const response = await axios.post(`http://localhost:3000/api/quizzes/duplicate/${quizId}`, null, {
+        const response = await this.$axios.post(`/api/quizzes/duplicate/${quizId}`, null, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -292,7 +292,7 @@ export default {
     async deleteQuiz(quizId) {
       const token = localStorage.getItem('token');
       try {
-        await axios.delete(`http://localhost:3000/api/quizzes/${quizId}`, {
+        await this.$axios.delete(`/api/quizzes/${quizId}`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
