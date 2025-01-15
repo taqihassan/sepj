@@ -1,13 +1,28 @@
 <template>
   <div class="flex flex-col items-center">
     <h2 class="text-xl font-semibold mb-4">Wähle einen Spielmodus</h2>
-    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4" @click="selectSingleplayer">
+
+    <!-- Einzelspieler Button -->
+    <button
+      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4"
+      @click="selectSingleplayer"
+    >
       Einzelspieler
     </button>
-    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4" @click="joinRoom">
+
+    <!-- Mehrspieler Button -->
+    <button
+      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4"
+      @click="selectMultiplayer"
+    >
       Mehrspieler (Raum beitreten)
     </button>
-    <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mb-4" @click="openHostModal">
+
+    <!-- Quiz Hosten Button -->
+    <button
+      class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mb-4"
+      @click="openHostModal"
+    >
       Quiz hosten
     </button>
 
@@ -46,7 +61,10 @@
     <!-- Raum-Code-Anzeige -->
     <div v-if="roomCode" class="mt-6 text-center">
       <p class="text-lg font-bold">Raumcode: {{ roomCode }}</p>
-      <button @click="startQuiz" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-4">
+      <button
+        @click="startQuiz"
+        class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-4"
+      >
         Quiz starten
       </button>
     </div>
@@ -54,8 +72,8 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { io } from 'socket.io-client';
+import axios from "axios";
+import { io } from "socket.io-client";
 
 export default {
   data() {
@@ -63,20 +81,24 @@ export default {
       showHostModal: false,
       userQuizzes: [],
       selectedQuiz: null,
-      roomCode: '',
+      roomCode: "",
       socket: null,
     };
   },
   methods: {
+    // Navigiere zur Einzelspieler-Quiz-Ansicht
     selectSingleplayer() {
-      this.$router.push({ name: 'quiz' });
+      this.$router.push({ name: "quiz", query: { mode: "singleplayer" } });
     },
-    joinRoom() {
-      const roomCode = prompt('Gib den Raumcode ein:');
+
+    // Öffne Eingabefeld für den Raumcode, um Mehrspieler-Quiz beizutreten
+    selectMultiplayer() {
+      const roomCode = prompt("Gib den Raumcode ein:");
       if (roomCode) {
-        this.$router.push({ name: 'play', query: { roomCode } });
+        this.$router.push({ name: "play", query: { roomCode, mode: "multiplayer" } });
       }
     },
+
     openHostModal() {
       this.fetchUserQuizzes();
       this.showHostModal = true;
@@ -86,16 +108,16 @@ export default {
       this.selectedQuiz = null;
     },
     async fetchUserQuizzes() {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       try {
-        const response = await axios.get('http://localhost:3000/api/quizzes/my-quizzes', {
+        const response = await axios.get("http://localhost:3000/api/quizzes/my-quizzes", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
         this.userQuizzes = response.data;
       } catch (error) {
-        console.error('Fehler beim Abrufen der Quizzes:', error);
+        console.error("Fehler beim Abrufen der Quizzes:", error);
       }
     },
     selectQuiz(quiz) {
@@ -103,28 +125,23 @@ export default {
     },
     createRoom() {
       if (!this.selectedQuiz) {
-        alert('Bitte wähle ein Quiz aus.');
+        alert("Bitte wähle ein Quiz aus.");
         return;
       }
       const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       this.roomCode = roomCode;
 
-      this.socket = io('http://localhost:3000');
-      this.socket.emit('create-room', { roomCode, quizId: this.selectedQuiz._id });
+      this.socket = io("http://localhost:3000");
+      this.socket.emit("create-room", { roomCode, quizId: this.selectedQuiz._id });
 
       this.showHostModal = false;
     },
     startQuiz() {
       if (this.socket) {
-    // Quiz im Raum starten
-    this.socket.emit('start-quiz', this.roomCode);
-    alert('Quiz gestartet!');
-  }
-},
+        this.socket.emit("start-quiz", this.roomCode);
+        alert("Quiz gestartet!");
+      }
+    },
   },
 };
 </script>
-
-<style scoped>
-/* Add styles if needed */
-</style>

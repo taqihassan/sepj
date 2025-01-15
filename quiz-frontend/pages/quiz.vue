@@ -75,9 +75,10 @@ export default {
         }
       }
     },
-    goToQuiz(quizId) {
-      // Navigiere zur Seite 'play.vue' mit der quizId als Parameter
-      this.$router.push({ path: '/play', query: { quizId: quizId } });
+    goToQuiz(quizId, mode = 'singleplayer') {
+      // Modus prüfen und entsprechend weiterleiten
+      const path = mode === 'multiplayer' ? '/play' : '/singleplayerplay';
+      this.$router.push({ path, query: { quizId: quizId } });
     },
     redirectToLogin() {
       window.location.href = '/login';

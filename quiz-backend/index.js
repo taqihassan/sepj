@@ -126,6 +126,25 @@ app.get('/test', (req, res) => {
   res.send('Backend ist erreichbar!');
 });
 
+// Neue Route zum Abrufen eines bestimmten Quizzes basierend auf der quizId Singleplayer
+app.get('/api/quizzes/singleplayerplay/:quizId', async (req, res) => {
+  const { quizId } = req.params;
+
+  if (!quizId || quizId === 'undefined') {
+    return res.status(400).json({ message: 'Ungültige Quiz-ID' });
+  }
+
+  try {
+    const quiz = await Quiz.findById(quizId).populate('questions');
+    if (!quiz) {
+      return res.status(404).json({ message: 'Quiz nicht gefunden' });
+    }
+    res.status(200).json(quiz);
+  } catch (error) {
+    res.status(500).json({ message: 'Fehler beim Abrufen des Quizzes', error: error.message });
+  }
+});
+
 
 // Socket.io integration for real-time multiplayer
 let activeRooms = {};

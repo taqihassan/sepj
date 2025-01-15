@@ -99,7 +99,7 @@ export default {
        
         const quizId = this.$route.query.quizId;
         if (quizId) {
-          await this.loadQuiz(quizId);
+          await this.loadQuiz(quizId, 'multiplayer');
         }
 
         this.roomCode = this.$route.query.roomCode;
@@ -137,9 +137,10 @@ export default {
     getQuestionImage(imagePath) {
       return imagePath.startsWith("/uploads") ? `/uploads${imagePath}` : imagePath;
     },
-    async loadQuiz(quizId) {
+    async loadQuiz(quizId, mode = 'multiplayer') {
       try {
-        const response = await this.$axios.get(`/api/quizzes/play/${quizId}`, {
+        const endpoint = mode === 'multiplayer' ? `/api/quizzes/play/${quizId}` : `/api/quizzes/singleplayerplay/${quizId}`;
+        const response = await this.$axios.get(endpoint, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
@@ -152,6 +153,7 @@ export default {
         console.error("Fehler beim Laden des Quizzes:", error);
       }
     },
+
     startTimer() {
       if (this.timerInterval) {
         clearInterval(this.timerInterval);
