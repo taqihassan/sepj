@@ -12,7 +12,7 @@
           Duplizieren
         </button>
         <button @click="showFeedback(quiz._id)" class="bg-green-600 hover:bg-green-800 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
-        Feedback
+          Feedback
         </button>
         <button @click="editQuiz(quiz)" class="bg-yellow-600 hover:bg-yellow-800 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-4 focus:ring-yellow-500 focus:ring-opacity-50">
           Bearbeiten
@@ -43,8 +43,8 @@
 
           <!-- Display current image if available -->
           <div v-if="currentQuiz.image">
-          <img :src="currentQuiz.image" alt="Quiz Bild" class="w-full h-32 object-cover rounded-lg" />
-        </div>
+            <img :src="currentQuiz.image" alt="Quiz Bild" class="w-full h-32 object-cover rounded-lg" />
+          </div>
 
           <!-- Image Upload for New Title Image -->
           <div class="mb-4">
@@ -52,31 +52,46 @@
             <input type="file" @change="handleImageUpload" class="w-full p-2 border rounded" accept="image/*" />
           </div>
 
-          <!-- Fragen anzeigen und bearbeiten mit Dropdown -->
+          <!-- Fragen anzeigen und bearbeiten mit Scroll-Container -->
           <div class="mb-4">
             <label class="block mb-2 text-sm font-medium text-gray-900">Fragen:</label>
-            <div v-for="(question, index) in currentQuiz.questions" :key="index" class="mb-2">
-              <div class="flex justify-between items-center">
-                <input v-model="currentQuiz.questions[index].text" type="text" class="w-full p-2 border rounded mb-1" required placeholder="Fragetext eingeben" />
-                <button @click="toggleOptions(index)" type="button" class="ml-2 text-gray-500 focus:outline-none">
-                  <span v-if="question.showOptions">▼</span>
-                  <span v-else>▶</span>
-                </button>
-              </div>
-
-              <!-- Answer options as read-only information -->
-              <div v-show="question.showOptions" class="mt-2 ml-4 border-l-2 border-gray-300 pl-4">
-                <div v-for="(option, optIndex) in question.options" :key="optIndex" class="flex items-center mb-1">
-                  <p class="w-full p-2 border rounded bg-gray-100 dark:bg-gray-700 mr-2 flex items-center justify-between">
-                    <span>{{ option.text }}</span>
-                    <span v-if="option.isCorrect" class="text-green-600 font-semibold">✔</span>
-                  </p>
+            
+            <!-- Scroll-Container für Fragen -->
+            <div class="question-scroll-container">
+              <div v-for="(question, index) in currentQuiz.questions" :key="index" class="mb-4">
+                <div class="flex justify-between items-center">
+                  <input 
+                    v-model="currentQuiz.questions[index].text" 
+                    type="text" 
+                    class="w-full p-2 border rounded mb-1" 
+                    required 
+                    placeholder="Fragetext eingeben" 
+                  />
+                  <button 
+                    @click="toggleOptions(index)" 
+                    type="button" 
+                    class="ml-2 text-gray-500 focus:outline-none">
+                    <span v-if="question.showOptions">▼</span>
+                    <span v-else>▶</span>
+                  </button>
                 </div>
-              </div>
-              <button type="button" @click="deleteQuestion(index)" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded mt-2">
+                <div v-show="question.showOptions" class="mt-2 ml-4 border-l-2 border-gray-300 pl-4">
+                  <div v-for="(option, optIndex) in question.options" :key="optIndex" class="flex items-center mb-1">
+                    <p class="w-full p-2 border rounded bg-gray-100 dark:bg-gray-700 mr-2 flex items-center justify-between">
+                      <span>{{ option.text }}</span>
+                      <span v-if="option.isCorrect" class="text-green-600 font-semibold">✔</span>
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  @click="deleteQuestion(index)" 
+                  class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded mt-2">
                   Frage löschen
                 </button>
+              </div>
             </div>
+
             <button type="button" @click="showQuestionModal = true" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded mt-2">
               Neue Frage hinzufügen
             </button>
@@ -100,33 +115,6 @@
       {{ successMessage }}
     </div>
   </div>
-
-<!-- Modal für Feedback -->
-<div v-if="showFeedbackModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-  <div class="bg-white p-6 rounded-lg w-full max-w-lg">
-    <h2 class="text-xl font-bold mb-4">{{ modalTitle }}</h2>
-    <table class="w-full border-collapse border border-gray-300">
-      <thead>
-        <tr>
-          <th class="border border-gray-300 p-2">Feedback</th>
-          <th class="border border-gray-300 p-2">Benutzer</th>
-          <th class="border border-gray-300 p-2">Datum</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="feedback in currentFeedback" :key="feedback._id">
-          <td class="border border-gray-300 p-2">{{ feedback.feedbackText }}</td>
-          <td class="border border-gray-300 p-2">{{ feedback.userId?.username || 'Anonym' }}</td>
-          <td class="border border-gray-300 p-2">{{ new Date(feedback.createdAt).toLocaleString() }}</td>
-        </tr>
-      </tbody>
-    </table>
-    <button @click="closeFeedbackModal" class="mt-4 bg-red-600 text-white font-bold py-2 px-4 rounded">
-      Schließen
-    </button>
-  </div>
-</div>
-
 </template>
 
 <script>
@@ -320,5 +308,14 @@ export default {
   background-color: #f9fafb;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.question-scroll-container {
+  max-height: 300px; /* Maximalhöhe des Containers */
+  overflow-y: auto; /* Ermöglicht vertikales Scrollen */
+  border: 1px solid #ccc; /* Optional: Rahmen um den Container */
+  padding: 10px;
+  background-color: #f9fafb; /* Optional: Hintergrundfarbe */
+  border-radius: 5px;
 }
 </style>
