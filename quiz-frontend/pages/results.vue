@@ -57,15 +57,12 @@ export default {
       },
     });
     this.score = response.data.score;
-    this.quizId = response.data.quizId; // ✅ Hier wird quizId gespeichert
+    this.quizId = response.data.quizId; // Hier wird quizId gespeichert
   } catch (error) {
     console.error('Fehler beim Laden des Ergebnisses:', error);
   }
 },
 
-    reviewQuiz() {
-      alert('Review-Funktion wird entwickelt...');
-    },
     goToHomePage() {
       this.$router.push('/');
     },
@@ -76,10 +73,9 @@ export default {
       }
 
       try {
-        await axios.post(
-          'http://localhost:3000/api/feedback/submit',
+        await this.$axios.post('/api/feedback/submit',
           {
-            quizId: this.quizId, // ✅ Jetzt wird die richtige quizId gesendet!
+            quizId: this.quizId, // Jetzt wird die richtige quizId gesendet!
             feedbackText: this.feedbackText,
           },
           {

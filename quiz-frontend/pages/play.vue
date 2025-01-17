@@ -43,15 +43,13 @@
         <p class="mb-4">Dein Punktestand: {{ score }}</p>
 
         <div class="button-group flex flex-col gap-4">
-          <button @click="reviewQuiz" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded">
-            Fragen überprüfen
-          </button>
           <button @click="goToHomePage" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded">
             Zur Startseite
           </button>
-          <button @click="giveFeedback" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded">
-            Feedback geben
-          </button>
+          <input v-model="feedbackText" type="text" placeholder="Bitte geben Sie Ihr Feedback" class="p-2 border border-gray-300 rounded mb-2" />
+        <button @click="submitFeedback" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded">
+          Feedback geben
+        </button>
         </div>
       </div>
     </div>
@@ -200,17 +198,36 @@ export default {
   }
 },
 
-    reviewQuiz() {
-      this.currentQuestionIndex = 0;
-      this.quizCompleted = false;
-    },
-
     goToHomePage() {
-      this.$router.push({ name: "home" });
+      this.$router.push({ name: '/' });
     },
 
-    giveFeedback() {
-      this.$router.push({ name: "feedback", params: { quizId: this.selectedQuiz._id } });
+    async submitFeedback() {
+      if (this.feedbackText.trim() === '') {
+        alert('Bitte geben Sie Ihr Feedback ein.');
+        return;
+      }
+
+      try {
+        await this.$axios.post('/api/feedback/submit',
+          {
+            quizId: this.quizId, // Jetzt wird die richtige quizId gesendet!
+            feedbackText: this.feedbackText,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
+
+        alert('Vielen Dank für Ihr Feedback!');
+        this.feedbackText = ''; // Reset des Textfelds nach erfolgreicher Übermittlung
+        window.location.href = '/';
+      } catch (error) {
+        console.error('Fehler beim Übermitteln des Feedbacks:', error);
+        alert('Fehler beim Übermitteln des Feedbacks. Bitte versuchen Sie es später erneut.');
+      }
     },
 
     async saveMultiplayerResults() {

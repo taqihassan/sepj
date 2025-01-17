@@ -52,7 +52,7 @@ export default {
           console.error("Kein Token gefunden!");
           return;
         }
-        const { data } = await axios.get('http://localhost:3000/api/quizzes/all-quizzes', {
+        const { data } = await this.$axios.get('/api/quizzes/all-quizzes', {
           headers: { Authorization: `Bearer ${token}` }, // Token im Header senden
         });
         this.quizzes = data; // Speichere die Quizzes
@@ -72,8 +72,7 @@ export default {
           console.error("Kein Token gefunden!");
           return;
         }
-        const { data } = await this.$axios.get(
-          `/api/results/leaderboard/${this.selectedQuizId}`,
+        const { data } = await this.$axios.get(`/api/results/leaderboard/${this.selectedQuizId}`,
           {
             headers: { Authorization: `Bearer ${token}` }, // Token im Header senden
           }
@@ -107,7 +106,7 @@ export default {
           console.error("Kein Token gefunden!");
           return;
         }
-        const { data } = await zhis.$axios.get('/api/results/all-results', {
+        const { data } = await this.$axios.get('/api/results/all-results', {
           headers: { Authorization: `Bearer ${token}` }, // Token im Header senden
         });
         this.results = data; // Setze die Ergebnisse auf die API-Daten
