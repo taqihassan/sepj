@@ -72,8 +72,8 @@ export default {
           console.error("Kein Token gefunden!");
           return;
         }
-        const { data } = await axios.get(
-          `http://localhost:3000/api/results/leaderboard/${this.selectedQuizId}`,
+        const { data } = await this.$axios.get(
+          `/api/results/leaderboard/${this.selectedQuizId}`,
           {
             headers: { Authorization: `Bearer ${token}` }, // Token im Header senden
           }
@@ -91,7 +91,7 @@ export default {
           console.error("Kein Token gefunden!");
           return;
         }
-        const { data } = await axios.get('http://localhost:3000/api/results/leaderboard', {
+        const { data } = await this.$axios.get('/api/results/leaderboard', {
           headers: { Authorization: `Bearer ${token}` }, // Token im Header senden
         });
         this.results = data; // Ergebnisse mit den Leaderboard-Daten ersetzen
@@ -107,7 +107,7 @@ export default {
           console.error("Kein Token gefunden!");
           return;
         }
-        const { data } = await axios.get('http://localhost:3000/api/results/all-results', {
+        const { data } = await zhis.$axios.get('/api/results/all-results', {
           headers: { Authorization: `Bearer ${token}` }, // Token im Header senden
         });
         this.results = data; // Setze die Ergebnisse auf die API-Daten
@@ -123,7 +123,7 @@ export default {
           console.error("Kein Token gefunden!");
           return;
         }
-        const { data } = await axios.get('http://localhost:3000/api/results/dashboard', {
+        const { data } = await this.$axios.get('/api/results/dashboard', {
           headers: { Authorization: `Bearer ${token}` }, // Token im Header senden
         });
         this.results = data; // Ergebnisse speichern

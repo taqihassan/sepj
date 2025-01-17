@@ -30,7 +30,7 @@ export default {
         window.dispatchEvent(new Event('loginStatusChanged'));
 
         // Weiterleitung zu einer geschützten Seite (z.B. Dashboard)
-        this.$router.push('/dashboard');
+        this.$router.push('/');
       } catch (error) {
         // Debugging-Logs für Fehler
         console.error('Fehler beim Login:', error);

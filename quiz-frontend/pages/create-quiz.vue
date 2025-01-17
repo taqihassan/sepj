@@ -158,7 +158,7 @@ export default {
           }
         });
         // Construct the full URL to display the image
-        this.quiz.image = `http://localhost:3000${response.data.imagePath}`; 
+        this.quiz.image = `http://${response.data.imagePath}`; 
       } catch (error) {
         console.error('Fehler beim Hochladen des Bildes:', error.response ? error.response.data : error.message);
         this.errorMessage = 'Fehler beim Hochladen des Bildes: ' + (error.response ? error.response.data.message : error.message);

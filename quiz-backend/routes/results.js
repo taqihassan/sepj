@@ -2,6 +2,44 @@ const express = require('express');
 const router = express.Router();
 const FinishedQuiz = require('../models/FinishedQuiz');
 const authenticateToken = require('../middleware/authenticateToken');
+const FinishedMultiQuiz = require('../models/FinishedMultiQuiz'); // Multiplayer Modell
+
+// 📌 SPEICHERE MULTIPLAYER QUIZ-ERGEBNISSE
+router.post('/save-multiplayer', authenticateToken, async (req, res) => {
+  const { roomCode, quizId, users } = req.body;
+
+  try {
+      const finishedQuiz = new FinishedMultiQuiz({
+          roomCode,
+          quizId,
+          users,
+          createdAt: new Date(),
+      });
+
+      const savedResult = await finishedQuiz.save();
+      res.status(201).json({ message: 'Multiplayer-Ergebnisse erfolgreich gespeichert', resultId: savedResult._id });
+  } catch (error) {
+      console.error('Fehler beim Speichern der Multiplayer-Ergebnisse:', error);
+      res.status(500).json({ message: 'Fehler beim Speichern der Ergebnisse', error: error.message });
+  }
+});
+
+// 📌 RUFEN MULTIPLAYER ERGEBNISSE FÜR EINEN RAUM AB
+router.get('/multiplayer/results/:roomCode', authenticateToken, async (req, res) => {
+  const { roomCode } = req.params;
+
+  try {
+      const results = await FinishedMultiQuiz.findOne({ roomCode });
+      if (!results) {
+          return res.status(404).json({ message: 'Keine Multiplayer-Ergebnisse gefunden' });
+      }
+
+      res.status(200).json(results);
+  } catch (error) {
+      console.error('Fehler beim Abrufen der Multiplayer-Ergebnisse:', error);
+      res.status(500).json({ message: 'Fehler beim Abrufen der Multiplayer-Ergebnisse', error: error.message });
+  }
+});
 
 
 router.get('/dashboard', authenticateToken, async (req, res) => {

@@ -23,6 +23,27 @@
       </div>
     </div>
 
+    <!-- Feedback Modal -->
+<div v-if="showFeedbackModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+  <div class="bg-white p-6 rounded-lg w-full max-w-lg">
+    <h2 class="text-xl font-bold mb-4">{{ modalTitle }}</h2>
+    <div v-if="currentFeedback.length > 0">
+      <ul>
+        <li v-for="(feedback, index) in currentFeedback" :key="index" class="mb-2">
+          <p class="text-gray-800 dark:text-gray-200">{{ feedback.feedbackText }}</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Von: {{ feedback.userId.username }}</p>
+        </li>
+      </ul>
+    </div>
+    <div v-else>
+      <p class="text-gray-600">Keine Feedbacks verfügbar.</p>
+    </div>
+    <div class="flex justify-end mt-4">
+      <button @click="closeFeedbackModal" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Schließen</button>
+    </div>
+  </div>
+</div>
+
     <!-- Modal for Editing Quiz -->
     <div v-if="showModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-6 rounded-lg w-full max-w-lg">
@@ -119,6 +140,7 @@
 
 <script>
 import axios from 'axios';
+
 import QuestionModal from '../components/QuestionModal.vue';
 
 export default {
@@ -163,6 +185,9 @@ export default {
       this.currentFeedback = response.data;
       this.modalTitle = 'Feedback für das Quiz';
       this.showFeedbackModal = true;
+
+      console.log('Feedback erhalten:', this.currentFeedback);
+    console.log('showFeedbackModal:', this.showFeedbackModal);
     } catch (error) {
       console.error('Fehler beim Abrufen des Feedbacks:', error.message);
       alert('Fehler beim Abrufen des Feedbacks.');

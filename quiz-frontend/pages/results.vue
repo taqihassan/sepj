@@ -7,9 +7,7 @@
       <p class="mb-4">Dein Punktestand: {{ score }}</p>
 
       <div class="button-group flex flex-col gap-4">
-        <button @click="reviewQuiz" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded">
-          Fragen überprüfen
-        </button>
+        
         <button @click="goToHomePage" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded">
           Zur Startseite
         </button>
@@ -36,6 +34,7 @@ export default {
       score: null,
       resultId: this.$route.query.resultId, // Hol die resultId aus der URL
       feedbackText: '', // Variable für das Feedback
+      quizId: null
     };
   },
   created() {
@@ -58,6 +57,7 @@ export default {
       },
     });
     this.score = response.data.score;
+    this.quizId = response.data.quizId; // ✅ Hier wird quizId gespeichert
   } catch (error) {
     console.error('Fehler beim Laden des Ergebnisses:', error);
   }
@@ -79,7 +79,7 @@ export default {
         await axios.post(
           'http://localhost:3000/api/feedback/submit',
           {
-            quizId: this.resultId, // Verwende resultId für Feedback
+            quizId: this.quizId, // ✅ Jetzt wird die richtige quizId gesendet!
             feedbackText: this.feedbackText,
           },
           {

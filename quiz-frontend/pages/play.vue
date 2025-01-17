@@ -77,6 +77,7 @@ export default {
       timerInterval: null,
       userAnswers: [],
       results: [],
+      finalResults: null, // Neue Variable für gespeicherte Ergebnisse
       socket: null,
       roomCode: "",
       waitingForOthers: false, // Neuer Zustand für das Warten auf andere
@@ -110,7 +111,7 @@ export default {
 
         this.socket.on("next-question", (data) => {
           this.selectedQuiz = { questions: [data.question] };
-          this.currentQuestionIndex = 0;
+          this.currentQuestionIndex=0;
           this.timer = data.timer;
           this.waitingForOthers = false; // Beendet den Wartestatus
           this.startTimer();
@@ -126,6 +127,15 @@ export default {
         this.socket.on("quiz-finished", (data) => {
           this.results = data.results;
           this.quizCompleted = true;
+
+          // Ergebnisse aus der Datenbank abrufen (FEHLER BEHOBEN)
+          this.fetchFinalResults()
+            .then(() => {
+              console.log("Finale Ergebnisse erfolgreich geladen.");
+            })
+            .catch((error) => {
+              console.error("Fehler beim Abrufen der finalen Ergebnisse:", error);
+            });
         });
       }
     } catch (error) {
@@ -135,8 +145,17 @@ export default {
 
   methods: {
     getQuestionImage(imagePath) {
-      return imagePath.startsWith("/uploads") ? `/uploads${imagePath}` : imagePath;
-    },
+    if (!imagePath) return ''; // Falls kein Bild existiert
+
+    // Falls das Bild schon eine absolute URL hat (z. B. bei CDNs), verwende es direkt
+    if (imagePath.startsWith('http')) {
+      return imagePath;
+    }
+
+    // Dynamisch die aktuelle Backend-URL ermitteln
+    const backendUrl = `http://${window.location.hostname}:3000`; // Passt sich an die IP oder localhost an
+    return `${backendUrl}${imagePath}`;
+  },
     async loadQuiz(quizId, mode = 'multiplayer') {
       try {
         const endpoint = mode === 'multiplayer' ? `/api/quizzes/play/${quizId}` : `/api/quizzes/singleplayerplay/${quizId}`;
@@ -167,31 +186,49 @@ export default {
         }
       }, 1000);
     },
+    
     answerQuestion(option) {
-      const question = this.selectedQuiz.questions[this.currentQuestionIndex];
-      this.waitingForOthers = true; // Setzt den Wartestatus
-      this.socket.emit("submit-answer", {
-        roomCode: this.roomCode,
-        answer: option ? option.text : "Keine Antwort",
-      });
+  const question = this.selectedQuiz.questions[this.currentQuestionIndex];
+  this.waitingForOthers = true; // Setzt den Wartestatus
+  this.socket.emit("submit-answer", {
+    roomCode: this.roomCode,
+    answer: option ? option.text : "Keine Antwort",
+  });
 
-      if (option && option.isCorrect) {
-        this.score += 100;
-      }
-    },
+  if (option && option.isCorrect) {
+    this.score += 100;
+  }
+},
+
     reviewQuiz() {
       this.currentQuestionIndex = 0;
       this.quizCompleted = false;
     },
+
     goToHomePage() {
       this.$router.push({ name: "home" });
     },
+
     giveFeedback() {
       this.$router.push({ name: "feedback", params: { quizId: this.selectedQuiz._id } });
+    },
+
+    async saveMultiplayerResults() {
+      try {
+        const response = await axios.post('/api/results/save-multiplayer', {
+          roomCode: this.roomCode,
+          quizId: this.quizId,
+          users: this.users
+        });
+        console.log(response.data);
+      } catch (error) {
+        console.error("Fehler beim Speichern der Multiplayer-Ergebnisse:", error);
+      }
     },
   },
 };
 </script>
+
 
 <style scoped>
 .question-container {

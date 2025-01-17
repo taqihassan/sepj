@@ -14,6 +14,7 @@ const Results = require('./routes/results');
 const Feedback = require('./routes/feedback');
 const quizzesRoute = require('./routes/quizzes');
 const questionsRoute = require('./routes/questions');
+const FinishedMultiQuiz = require('./models/FinishedMultiQuiz');
 
 
 const getLocalIpAddress = () => {
@@ -213,46 +214,128 @@ io.on('connection', (socket) => {
         clearInterval(timerInterval);
   
         validateAnswers(room);
-  
+        saveResultsToDB(roomCode); 
         if (room.currentQuestionIndex + 1 < room.questions.length) {
+         // Speichere nach jeder Frage
+        
           room.currentQuestionIndex++;
           room.timer = 30;
-          room.responses = {};
-  
+          room.responses = {}; // Antworten für nächste Frage zurücksetzen
+        
           const nextQuestion = room.questions[room.currentQuestionIndex];
           io.to(roomCode).emit("next-question", { question: nextQuestion, timer: room.timer });
-  
+        
           startQuestionTimer(roomCode);
         } else {
+          saveResultsToDB(roomCode); // Letzte Speicherung nach der letzten Frage
           io.to(roomCode).emit("quiz-finished", { results: room.users });
           delete activeRooms[roomCode];
         }
+        
       }
     }, 1000);
   }
+
+  async function saveResultsToDB(roomCode) {
+    const room = activeRooms[roomCode];
+    if (!room) {
+      console.error(`Fehler: Raum ${roomCode} nicht gefunden.`);
+      return;
+    }
+  
+    console.log(`🔹 Speichere Ergebnisse für Raum ${roomCode}...`);
+  
+    try {
+      let existingResult = await FinishedMultiQuiz.findOne({ roomCode: roomCode });
+  
+      if (!existingResult) {
+        existingResult = new FinishedMultiQuiz({
+          roomCode: roomCode,
+          quizId: room.quizId,
+          users: [],
+        });
+      }
+  
+      room.users.forEach(user => {
+        let userData = existingResult.users.find(u => u.username === user.username);
+        if (!userData) {
+          userData = { username: user.username, score: 0, answers: [] };
+          existingResult.users.push(userData);
+        }
+  
+        userData.score = user.score;
+  
+        room.questions.forEach(question => {
+          const userAnswers = room.responses[user.id] || []; // Holt ALLE Antworten für den Benutzer
+          const userAnswerObj = userAnswers.find(a => a.questionId.toString() === question._id.toString());
+  
+          const answerText = userAnswerObj ? userAnswerObj.answerText : "Keine Antwort";
+          const isCorrect = question.options.some(opt => opt.isCorrect && opt.text === answerText);
+  
+          const existingAnswer = userData.answers.find(ans => ans.questionId.toString() === question._id.toString());
+  
+          if (existingAnswer) {
+            existingAnswer.answerText = answerText;
+            existingAnswer.isCorrect = isCorrect;
+          } else {
+            userData.answers.push({
+              questionId: new mongoose.Types.ObjectId(question._id),
+              answerText: answerText,
+              isCorrect: isCorrect
+            });
+          }
+        });
+      });
+  
+      await existingResult.save();
+      console.log(`✅ Multiplayer-Ergebnisse für Raum ${roomCode} erfolgreich gespeichert.`);
+    } catch (error) {
+      console.error(`❌ Fehler beim Speichern der Multiplayer-Ergebnisse für Raum ${roomCode}:`, error);
+    }
+  }
+  
   // Antworten validieren
   function validateAnswers(room) {
     const currentQuestion = room.questions[room.currentQuestionIndex];
     const correctAnswers = currentQuestion.options.filter((o) => o.isCorrect).map((o) => o.text);
   
     room.users.forEach((user) => {
-      const userAnswer = room.responses[user.id] || "Keine Antwort";
-      if (correctAnswers.includes(userAnswer)) {
-        user.score += 100;
-      }
+      const userAnswers = room.responses[user.id] || [];
+  
+      userAnswers.forEach(answer => {
+        if (correctAnswers.includes(answer.answerText)) {
+          
+          user.score += 100;
+        }
+      });
     });
   }
+  
 
   // Antwort einreichen
-  socket.on("submit-answer", ({ roomCode, answer }) => {
+  socket.on("submit-answer", ({ roomCode, answer, questionId }) => {
     const room = activeRooms[roomCode];
     if (!room) return;
   
-    room.responses[socket.id] = answer;
+    console.log(`Antwort von ${socket.id} für Raum ${roomCode}:`, answer, "Frage ID:", questionId);
+  
+    if (!room.responses[socket.id]) {
+      room.responses[socket.id] = [];
+    }
+  
+    room.responses[socket.id].push({ 
+      questionId: new mongoose.Types.ObjectId(questionId), // Speichere als ObjectId
+      answerText: answer 
+    });
+  
+    console.log(`Aktuelle Antworten für ${socket.id}:`, room.responses[socket.id]);
+  
     if (Object.keys(room.responses).length === room.users.length) {
       room.timer = 0;
     }
   });
+  
+  
 
   // Benutzer trennt Verbindung
   socket.on('disconnect', () => {

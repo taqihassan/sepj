@@ -129,8 +129,9 @@ export default {
       this.selectedImageFile = event.target.files[0];
     },
     getImageUrl(imagePath) {
-    return `http://localhost:3000${imagePath}`;
-  },
+  if (!imagePath) return ''; // Falls kein Bild vorhanden ist, nichts zurückgeben
+  return imagePath.startsWith('/uploads/') ? imagePath : `/uploads/${imagePath}`;
+},
     async updateQuestion() {
       const token = localStorage.getItem('token');
       if (!token) {

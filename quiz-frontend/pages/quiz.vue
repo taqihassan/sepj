@@ -54,27 +54,37 @@ export default {
   },
   methods: {
     async fetchQuizzes() {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        this.isAuthenticated = false;
-        return;
-      }
+  const token = localStorage.getItem('token');
+  if (!token) {
+    this.isAuthenticated = false;
+    return;
+  }
 
-      try {
-        const response = await axios.get('http://localhost:3000/api/quizzes/all-quizzes', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        this.quizzes = response.data;
-      } catch (error) {
-        if (error.response && error.response.status === 401) {
-          this.isAuthenticated = false;
-        } else {
-          console.error('Fehler beim Laden der Quizzes:', error);
-        }
-      }
-    },
+  try {
+    const response = await this.$axios.get('/api/quizzes/all-quizzes', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    // Backend-URL dynamisch bestimmen
+    const backendUrl = `http://${window.location.hostname}:3000`;
+
+    // Bildpfade umwandeln
+    this.quizzes = response.data.map(quiz => ({
+      ...quiz,
+      image: quiz.image ? `${backendUrl}${quiz.image}` : null
+    }));
+
+  } catch (error) {
+    if (error.response && error.response.status === 401) {
+      this.isAuthenticated = false;
+    } else {
+      console.error('Fehler beim Laden der Quizzes:', error);
+    }
+  }
+},
+
     goToQuiz(quizId, mode = 'singleplayer') {
       // Modus prüfen und entsprechend weiterleiten
       const path = mode === 'multiplayer' ? '/play' : '/singleplayerplay';
