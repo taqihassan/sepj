@@ -47,17 +47,37 @@ export default {
       }
     },
     async saveQuestion() {
+      // Validation to ensure at least one correct answer is selected
+      const correctAnswers = this.answers.filter(answer => answer.isCorrect);
+      if (correctAnswers.length === 0) {
+        alert('Bitte markieren Sie mindestens eine Antwort als richtig.');
+        return;
+      }
+
+      const token = localStorage.getItem('token');
       const newQuestion = {
         text: this.questionText,
         options: this.answers
       };
 
       try {
-        const response = await axios.post('http://localhost:3000/questions/create', newQuestion);
-        this.$emit('save', response.data); // Emit the new question data back to the parent
+        const response = await axios.post('http://localhost:3000/api/questions/create', newQuestion, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        this.$emit('save', response.data.question); // Emit the new question data back to the parent
+        this.resetForm();
       } catch (error) {
         console.error('Fehler beim Erstellen der Frage:', error);
       }
+    },
+    resetForm() {
+      this.questionText = '';
+      this.answers = [
+        { text: '', isCorrect: false },
+        { text: '', isCorrect: false }
+      ];
     }
   }
 };

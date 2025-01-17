@@ -1,27 +1,48 @@
 <template>
-  <div class="container">
-    <h1>Frage erstellen</h1>
-    <form @submit.prevent="createQuestion">
-      <div>
-        <label>Fragetext:</label>
-        <input v-model="question.text" type="text" placeholder="Gib deine Frage ein" required />
-      </div>
-      <div>
-        <label>Antwortmöglichkeiten:</label>
-        <div v-for="(option, index) in question.options" :key="index">
-          <input v-model="option.text" type="text" :placeholder="'Option ' + (index + 1)" required />
-          <label>
-            <input type="checkbox" v-model="option.isCorrect" />
-            Richtige Antwort
-          </label>
+<section class="bg-gray-50 dark:bg-blue-200 min-h-screen flex items-center">    <div class="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0 w-full max-w-screen-xl">
+      <h1 class="text-3xl font-bold mb-8 text-gray-900 dark:text-black text-center">Frage erstellen</h1>
+      <form @submit.prevent="createQuestion" class="space-y-6">
+        <div>
+          <label for="question-text" class="block mb-2 text-lg font-medium text-gray-900 dark:text-black">Fragetext:</label>
+          <input id="question-text" v-model="question.text" type="text" class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Gib deine Frage ein" required />
         </div>
-      </div>
-      <button type="submit">Frage erstellen</button>
-    </form>
+        <div>
+          <label class="block mb-4 text-lg font-medium text-gray-900 dark:text-black">Antwortmöglichkeiten:</label>
+          <div v-for="(option, index) in question.options" :key="index" class="mb-6">
+            <input v-model="option.text" type="text" :placeholder="'Option ' + (index + 1)" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-2" required />
+            <label class="flex items-center text-sm font-medium text-gray-900 dark:text-black">
+              <input type="checkbox" v-model="option.isCorrect" class="mr-2 focus:ring-blue-500" />
+              Richtige Antwort
+            </label>
+            <button @click="removeAnswer(index)" v-if="question.options.length > 2" type="button" class="text-red-500 hover:text-red-700 mt-2">Antwort entfernen</button>
+          </div>
+          <button @click="addAnswer" v-if="question.options.length < 4" type="button" class="text-blue-500 hover:text-blue-700 font-bold mt-4">Antwort hinzufügen</button>
+        </div>
 
-    <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
-    <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
-  </div>
+        <!-- Image Upload -->
+        <div>
+          <label class="block mb-2 text-lg font-medium text-gray-900 dark:text-black">Titelbild:</label>
+          <input type="file" @change="uploadImage" class="w-full p-4 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+          <div v-if="question.image" class="mt-4">
+            <img :src="question.image1" alt="Titelbild Vorschau" class="max-w-full h-auto" />
+          </div>
+        </div>
+
+        <div class="flex justify-center">
+          <button type="submit" class="bg-blue-600 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
+            Frage erstellen
+          </button>
+        </div>
+      </form>
+
+      <div v-if="successMessage" class="text-green-700 bg-green-100 p-4 rounded-lg mt-8 text-center">
+        {{ successMessage }}
+      </div>
+      <div v-if="errorMessage" class="text-red-700 bg-red-100 p-4 rounded-lg mt-8 text-center">
+        {{ errorMessage }}
+      </div>
+    </div>
+  </section>
 </template>
 
 <script>
@@ -32,73 +53,93 @@ export default {
         text: '',
         options: [
           { text: '', isCorrect: false },
-          { text: '', isCorrect: false },
-          { text: '', isCorrect: false },
           { text: '', isCorrect: false }
         ],
-        userId: '670fd8cdb754b88b7ebdce41' // Dummy user ID for testing, replace with actual userId
+        image: '' // New field to store image path
       },
       successMessage: '',
       errorMessage: ''
     };
   },
   methods: {
-    async createQuestion() {
-  console.log(this.question); // Ensure this logs an array, not a string
-  
-  try {
-    const response = await fetch('http://localhost:3000/questions/create', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(this.question), // Ensure question.options is an array of objects
-    });
+    addAnswer() {
+      if (this.question.options.length < 4) {
+        this.question.options.push({ text: '', isCorrect: false });
+      }
+    },
+    removeAnswer(index) {
+      if (this.question.options.length > 2) {
+        this.question.options.splice(index, 1);
+      }
+    },
+    async uploadImage(event) {
+      const file = event.target.files[0];
+      const formData = new FormData();
+      formData.append('image', file);
 
-    if (response.ok) {
-      this.successMessage = 'Frage erfolgreich erstellt!';
-      this.errorMessage = '';
-      this.resetForm();
-    } else {
-      const errorData = await response.json();
-      this.errorMessage = errorData.message || 'Fehler beim Erstellen der Frage';
-      this.successMessage = '';
-    }
-  } catch (error) {
-    this.errorMessage = 'Fehler beim Erstellen der Frage: ' + error.message;
-    this.successMessage = '';
-  }
-},
+      const token = localStorage.getItem('token');
+      try {
+        const response = await fetch('http://localhost:3000/api/questions/upload-image', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+        const data = await response.json();
+        this.question.image1 = `http://localhost:3000${data.imagePath}`; // Set the image path for preview
+        this.question.image = `${data.imagePath}`; // Set the image path for preview
+      } catch (error) {
+        console.error('Fehler beim Hochladen des Bildes:', error);
+        this.errorMessage = 'Fehler beim Hochladen des Bildes';
+      }
+    },
+    async createQuestion() {
+      // Validation to ensure at least one correct answer is selected
+      const correctAnswers = this.question.options.filter(option => option.isCorrect);
+      if (correctAnswers.length === 0) {
+        this.errorMessage = 'Bitte markieren Sie mindestens eine Antwort als richtig.';
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('token'); // Hole das Token aus dem localStorage
+
+        const response = await fetch('http://localhost:3000/api/questions/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` // Füge das Token im Authorization Header hinzu
+          },
+          body: JSON.stringify(this.question)
+        });
+
+        if (response.ok) {
+          this.successMessage = 'Frage erfolgreich erstellt!';
+          this.errorMessage = '';
+          this.resetForm();
+        } else {
+          const errorData = await response.json();
+          this.errorMessage = errorData.message || 'Fehler beim Erstellen der Frage';
+          this.successMessage = '';
+        }
+      } catch (error) {
+        this.errorMessage = 'Fehler beim Erstellen der Frage: ' + error.message;
+        this.successMessage = '';
+      }
+    },
     resetForm() {
       this.question = {
         text: '',
         options: [
           { text: '', isCorrect: false },
-          { text: '', isCorrect: false },
-          { text: '', isCorrect: false },
           { text: '', isCorrect: false }
         ],
-        userId: '670fd8cdb754b88b7ebdce41'
+        image: '' // Reset image field
       };
     }
   }
 };
 </script>
 
-<style scoped>
-.container {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 20px;
-}
 
-.success-message {
-  color: green;
-  margin-top: 20px;
-}
-
-.error-message {
-  color: red;
-  margin-top: 20px;
-}
-</style>

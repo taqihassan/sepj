@@ -5,31 +5,54 @@ export default {
   data() {
     return {
       email: '',
-      password: ''
+      password: '',
+      showError: false,
+      errorMessage: '',
     };
   },
   methods: {
     async login(event) {
       // Verhindert das automatische Neuladen der Seite beim Abschicken des Formulars
       event.preventDefault();
+      console.log('Login-Daten werden gesendet:', { email: this.email, password: this.password });
 
       try {
-        const response = await axios.post('http://localhost:3000/api/login', {
-          email: this.email,
-          password: this.password
-        });
-        console.log('Login erfolgreich:', response.data);
-        
-        // Token speichern (localStorage oder Cookies)
-        localStorage.setItem('token', response.data.token);
+        const response = await this.$axios.post('/api/login', {
+      email: this.email,
+      password: this.password,
+      });
 
-        // Weiterleitung zu einer geschützten Seite (z.B. Quiz-Dashboard)
-        this.$router.push('/dashboard');
+        console.log('Login erfolgreich:', response.data);
+
+        // Token und Username speichern
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('username', response.data.username); // Speichert den Benutzernamen
+        window.dispatchEvent(new Event('loginStatusChanged'));
+
+        // Weiterleitung zu einer geschützten Seite (z.B. Dashboard)
+        this.$router.push('/');
       } catch (error) {
-        console.error('Fehler beim Login:', error.response?.data?.message || error.message);
+        // Debugging-Logs für Fehler
+        console.error('Fehler beim Login:', error);
+        if (error.response) {
+          console.error('Antwort vom Server:', error.response.data);
+          console.error('Status:', error.response.status);
+          console.error('Header:', error.response.headers);
+        } else if (error.request) {
+          console.error('Keine Antwort vom Server erhalten:', error.request);
+        } else {
+          console.error('Fehler beim Konfigurieren der Anfrage:', error.message);
+        }
+
+        // Setze die Fehlermeldung und zeige das Pop-up an
+        this.showError = true;
+        this.errorMessage = error.response?.data?.message || 'Ein unbekannter Fehler ist aufgetreten';
       }
-    }
-  }
+    },
+    closeModal() {
+      this.showError = false; // Pop-up schließen
+    },
+  },
 };
 </script>
 
@@ -54,9 +77,18 @@ export default {
               <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
               <input type="password" v-model="password" id="password" placeholder="••••••••" class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required>
             </div>
-            <button type="submit" class="w-full text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Sign in</button>
+            <button type="submit" class="w-full text-white bg-gray-600 hover:bg-gray-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-500 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Sign in</button>
           </form>
         </div>
+      </div>
+    </div>
+
+    <!-- Pop-up-Modal -->
+    <div v-if="showError" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-white rounded-lg shadow-lg p-6 w-1/3">
+        <h2 class="text-xl font-bold mb-4">Fehler beim Login</h2>
+        <p>{{ errorMessage }}</p>
+        <button @click="closeModal" class="mt-4 bg-red-600 text-white p-2 rounded-lg">Schließen</button>
       </div>
     </div>
   </section>

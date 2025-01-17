@@ -1,0 +1,263 @@
+<template>
+  <div class="container mt-6">
+    <h1 class="text-3xl font-extrabold text-center mb-6 text-blue-600">
+      {{ selectedQuiz ? selectedQuiz.title : "Quiz spielen" }}
+    </h1>
+
+    <div v-if="selectedQuiz && currentQuestionIndex < selectedQuiz.questions.length && !quizCompleted">
+      <div class="question-container p-6 bg-white rounded-lg shadow">
+        <!-- Bild der Frage -->
+        <div v-if="selectedQuiz.questions[currentQuestionIndex].image" class="image-container">
+          <img :src="getQuestionImage(selectedQuiz.questions[currentQuestionIndex].image)" alt="Fragenbild" class="question-image">
+        </div>
+
+        <!-- Text der Frage -->
+        <h2 class="text-xl font-bold mt-4 text-center">Frage {{ currentQuestionIndex + 1 }}</h2>
+        <p class="text-center mb-4">{{ selectedQuiz.questions[currentQuestionIndex].text }}</p>
+
+        <!-- Antwortoptionen -->
+        <div class="options-grid">
+          <div v-for="(option, index) in selectedQuiz.questions[currentQuestionIndex].options" :key="index" class="option-item">
+            <button
+              @click="answerQuestion(option)"
+              class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
+              :disabled="waitingForOthers"
+            >
+              {{ option.text }}
+            </button>
+          </div>
+        </div>
+
+        <div class="timer mt-4">Zeit verbleibend: {{ timer }} Sekunden</div>
+
+        <div v-if="waitingForOthers" class="waiting mt-4 text-center text-gray-500">
+          Warten auf andere Teilnehmer...
+        </div>
+      </div>
+    </div>
+
+    <!-- Quiz abgeschlossen -->
+    <div v-else-if="quizCompleted">
+      <div class="result-container p-6 bg-white rounded-lg shadow">
+        <h2 class="text-2xl font-bold mb-4">Quiz abgeschlossen!</h2>
+        <p class="mb-4">Dein Punktestand: {{ score }}</p>
+
+        <div class="button-group flex flex-col gap-4">
+          <button @click="goToHomePage" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded">
+            Zur Startseite
+          </button>
+          <input v-model="feedbackText" type="text" placeholder="Bitte geben Sie Ihr Feedback" class="p-2 border border-gray-300 rounded mb-2" />
+        <button @click="submitFeedback" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded">
+          Feedback geben
+        </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ladezustand anzeigen -->
+    <div v-else>
+      <p class="text-center text-gray-600">Lade Quiz...</p>
+    </div>
+  </div>
+</template>
+
+<script>
+import { io } from "socket.io-client";
+
+export default {
+  data() {
+    return {
+      selectedQuiz: null,
+      currentQuestionIndex: 0,
+      timer: 0,
+      score: 0,
+      quizCompleted: false,
+      timerInterval: null,
+      userAnswers: [],
+      results: [],
+      finalResults: null, // Neue Variable für gespeicherte Ergebnisse
+      socket: null,
+      roomCode: "",
+      waitingForOthers: false, // Neuer Zustand für das Warten auf andere
+    };
+  },
+  async created() {
+    try {
+      if (process.client) {
+        const username = localStorage.getItem("username");
+        if (!username) {
+          alert("Du bist nicht eingeloggt. Bitte melde dich an.");
+          this.$router.push({ name: "login" });
+          return;
+        }
+
+        const response = await this.$axios.get('/api/ip');
+        this.serverIp = response.data.ip;
+
+        this.socket = io(`http://${this.serverIp}:3000`);
+       
+        const quizId = this.$route.query.quizId;
+        if (quizId) {
+          await this.loadQuiz(quizId, 'multiplayer');
+        }
+
+        this.roomCode = this.$route.query.roomCode;
+        this.socket.emit("join-room", {
+          roomCode: this.roomCode,
+          username: username,
+        });
+
+        this.socket.on("next-question", (data) => {
+          this.selectedQuiz = { questions: [data.question] };
+          this.currentQuestionIndex=0;
+          this.timer = data.timer;
+          this.waitingForOthers = false; // Beendet den Wartestatus
+          this.startTimer();
+        });
+
+        this.socket.on("timer-update", (data) => {
+          this.timer = data.timer;
+          if (this.timer <= 0) {
+            clearInterval(this.timerInterval);
+          }
+        });
+
+        this.socket.on("quiz-finished", (data) => {
+          this.results = data.results;
+          this.quizCompleted = true;
+
+          // Ergebnisse aus der Datenbank abrufen (FEHLER BEHOBEN)
+          this.fetchFinalResults()
+            .then(() => {
+              console.log("Finale Ergebnisse erfolgreich geladen.");
+            })
+            .catch((error) => {
+              console.error("Fehler beim Abrufen der finalen Ergebnisse:", error);
+            });
+        });
+      }
+    } catch (error) {
+      console.error("Fehler beim Abrufen der IP-Adresse oder bei der Verbindung:", error);
+    }
+  },
+
+  methods: {
+    getQuestionImage(imagePath) {
+    if (!imagePath) return ''; // Falls kein Bild existiert
+
+    // Falls das Bild schon eine absolute URL hat (z. B. bei CDNs), verwende es direkt
+    if (imagePath.startsWith('http')) {
+      return imagePath;
+    }
+
+    // Dynamisch die aktuelle Backend-URL ermitteln
+    const backendUrl = `http://${window.location.hostname}:3000`; // Passt sich an die IP oder localhost an
+    return `${backendUrl}${imagePath}`;
+  },
+    async loadQuiz(quizId, mode = 'multiplayer') {
+      try {
+        const endpoint = mode === 'multiplayer' ? `/api/quizzes/play/${quizId}` : `/api/quizzes/singleplayerplay/${quizId}`;
+        const response = await this.$axios.get(endpoint, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        this.selectedQuiz = response.data;
+        if (this.selectedQuiz && this.selectedQuiz.questions.length > 0) {
+          this.startTimer();
+        }
+      } catch (error) {
+        console.error("Fehler beim Laden des Quizzes:", error);
+      }
+    },
+
+    startTimer() {
+      if (this.timerInterval) {
+        clearInterval(this.timerInterval);
+      }
+      this.timerInterval = setInterval(() => {
+        if (this.timer > 0) {
+          this.timer--;
+        } else {
+          clearInterval(this.timerInterval);
+          this.answerQuestion(null);
+        }
+      }, 1000);
+    },
+    
+    answerQuestion(option) {
+  const question = this.selectedQuiz.questions[this.currentQuestionIndex];
+  this.waitingForOthers = true; // Setzt den Wartestatus
+  this.socket.emit("submit-answer", {
+    roomCode: this.roomCode,
+    answer: option ? option.text : "Keine Antwort",
+  });
+
+  if (option && option.isCorrect) {
+    this.score += 100;
+  }
+},
+
+    goToHomePage() {
+      this.$router.push({ name: '/' });
+    },
+
+    async submitFeedback() {
+      if (this.feedbackText.trim() === '') {
+        alert('Bitte geben Sie Ihr Feedback ein.');
+        return;
+      }
+
+      try {
+        await this.$axios.post('/api/feedback/submit',
+          {
+            quizId: this.quizId, // Jetzt wird die richtige quizId gesendet!
+            feedbackText: this.feedbackText,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
+
+        alert('Vielen Dank für Ihr Feedback!');
+        this.feedbackText = ''; // Reset des Textfelds nach erfolgreicher Übermittlung
+        window.location.href = '/';
+      } catch (error) {
+        console.error('Fehler beim Übermitteln des Feedbacks:', error);
+        alert('Fehler beim Übermitteln des Feedbacks. Bitte versuchen Sie es später erneut.');
+      }
+    },
+
+    async saveMultiplayerResults() {
+      try {
+        const response = await axios.post('/api/results/save-multiplayer', {
+          roomCode: this.roomCode,
+          quizId: this.quizId,
+          users: this.users
+        });
+        console.log(response.data);
+      } catch (error) {
+        console.error("Fehler beim Speichern der Multiplayer-Ergebnisse:", error);
+      }
+    },
+  },
+};
+</script>
+
+
+<style scoped>
+.question-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+.result-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+.button-group {
+  max-width: 600px;
+  margin: 0 auto;
+}
+</style>

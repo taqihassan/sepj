@@ -1,57 +1,99 @@
 <template>
-    <div class="min-h-screen flex items-center justify-center bg-gray-100">
-      <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h2 v-if="!quizEnded" class="text-2xl font-bold mb-6 text-center">{{ question.text }}</h2>
-  
-        <!-- Quiz wird angezeigt, wenn es nicht beendet ist -->
-        <form v-if="!quizEnded" @submit.prevent="submitAnswer">
-          <div v-for="(option, index) in question.options" :key="index" class="mb-4">
-            <label>
-              <input type="radio" v-model="selectedAnswer" :value="option" />
-              {{ option }}
-            </label>
-          </div>
-          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" type="submit">
-            Antwort senden
+  <div class="container mt-6">
+    <h1 class="text-3xl font-extrabold text-center mb-6 text-blue-600">
+      {{ selectedQuiz ? selectedQuiz.title : "Verfügbare Quizzes" }}
+    </h1>
+
+    <!-- Übersicht der Quizzes anzeigen -->
+    <div v-if="quizzes.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-for="quiz in quizzes" :key="quiz._id" class="bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300">
+        <div v-if="quiz.image" class="h-48 bg-cover bg-center" :style="{ backgroundImage: `url(${quiz.image})` }"></div>
+        <div v-else class="h-48 bg-gray-200 flex items-center justify-center">
+          <p class="text-gray-500">Kein Bild verfügbar</p>
+        </div>
+        <div class="p-6">
+          <h2 class="font-bold text-xl mb-2 text-gray-800">{{ quiz.title }}</h2>
+          <p class="text-gray-600 mb-4">{{ quiz.description }}</p>
+          <p class="text-gray-600 mb-4">Erstellt von: {{ quiz.createdBy.username }}</p>
+          <button @click="goToQuiz(quiz._id)" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-colors duration-300">
+            Quiz starten
           </button>
-        </form>
-  
-        <!-- Endergebnis -->
-        <div v-if="quizEnded" class="text-center">
-          <h2 class="text-2xl font-bold">Quiz beendet!</h2>
-          <p class="mt-4">Dein Punktestand: {{ score }}</p>
         </div>
       </div>
     </div>
-  </template>
-  
-  <script setup>
-  import { ref, onMounted } from 'vue'
-  import { io } from 'socket.io-client'
-  
-  const question = ref({ text: '', options: [] })
-  const selectedAnswer = ref('')
-  const score = ref(0)
-  const quizEnded = ref(false)
-  
-  // Socket.io Verbindung
-  const socket = io('http://localhost:3000')
-  
-  // Wenn eine neue Frage empfangen wird
-  socket.on('next-question', (newQuestion) => {
-    question.value = newQuestion
-    selectedAnswer.value = ''
-  })
-  
-  // Wenn das Quiz endet und das Endergebnis gesendet wird
-  socket.on('quiz-end', (data) => {
-    score.value = data.score
-    quizEnded.value = true
-  })
-  
-  // Antwort senden
-  const submitAnswer = () => {
-    socket.emit('submit-answer', selectedAnswer.value)
+    <div v-else class="text-center">
+      <p class="text-gray-600">Keine Quizzes verfügbar.</p>
+      <div v-if="!isAuthenticated" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white p-6 rounded-lg w-full max-w-md">
+          <h2 class="text-xl font-bold mb-4">Sie sind nicht angemeldet</h2>
+          <p>Bitte melden Sie sich an, um fortzufahren.</p>
+          <div class="flex justify-end mt-4">
+            <button @click="redirectToLogin" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+              Zum Login
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import axios from 'axios';
+
+export default {
+  data() {
+    return {
+      quizzes: [],
+      isAuthenticated: !!localStorage.getItem('token'),
+      selectedQuiz: null, // Hier wird `selectedQuiz` hinzugefügt
+    };
+  },
+  created() {
+    this.fetchQuizzes();
+  },
+  methods: {
+    async fetchQuizzes() {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    this.isAuthenticated = false;
+    return;
   }
-  </script>
-  
+
+  try {
+    const response = await this.$axios.get('/api/quizzes/all-quizzes', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    // Backend-URL dynamisch bestimmen
+    const backendUrl = `http://${window.location.hostname}:3000`;
+
+    // Bildpfade umwandeln
+    this.quizzes = response.data.map(quiz => ({
+      ...quiz,
+      image: quiz.image ? `${backendUrl}${quiz.image}` : null
+    }));
+
+  } catch (error) {
+    if (error.response && error.response.status === 401) {
+      this.isAuthenticated = false;
+    } else {
+      console.error('Fehler beim Laden der Quizzes:', error);
+    }
+  }
+},
+
+    goToQuiz(quizId, mode = 'singleplayer') {
+      // Modus prüfen und entsprechend weiterleiten
+      const path = mode === 'multiplayer' ? '/play' : '/singleplayerplay';
+      this.$router.push({ path, query: { quizId: quizId } });
+    },
+    redirectToLogin() {
+      window.location.href = '/login';
+    }
+  }
+};
+
+</script>
