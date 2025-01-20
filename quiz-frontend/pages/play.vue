@@ -12,7 +12,7 @@
         </div>
 
         <!-- Text der Frage -->
-        <h2 class="text-xl font-bold mt-4 text-center">Frage {{ currentQuestionIndex + 1 }}</h2>
+        <h2 class="text-xl font-bold mt-4 text-center">Frage: </h2>
         <p class="text-center mb-4">{{ selectedQuiz.questions[currentQuestionIndex].text }}</p>
 
         <!-- Antwortoptionen -->
@@ -193,8 +193,10 @@ export default {
     answer: option ? option.text : "Keine Antwort",
   });
 
+
+
   if (option && option.isCorrect) {
-    this.score += 100;
+    this.score += 1000;
   }
 },
 

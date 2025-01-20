@@ -23,49 +23,55 @@
     </div>
 
     <!-- Edit Question Modal -->
-    <div v-if="questionToEdit" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-      <div class="bg-white p-6 rounded-lg w-full max-w-md">
-        <h2 class="text-xl font-bold mb-4">Frage bearbeiten</h2>
-        <form @submit.prevent="updateQuestion">
-          <div class="mb-4">
-            <label class="block mb-2 text-sm font-medium text-gray-900">Fragetext:</label>
-            <input v-model="questionToEdit.text" type="text" class="w-full p-2 border rounded" required />
-          </div>
+    <<!-- Bearbeiten-Fenster -->
+<div v-if="questionToEdit" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4">
+  <div class="bg-white p-6 rounded-lg w-full max-w-lg md:max-w-xl lg:max-w-2xl shadow-lg overflow-hidden">
+    <div class="max-h-[80vh] overflow-y-auto p-2">
+      <h2 class="text-xl font-bold mb-4 text-center">Frage bearbeiten</h2>
 
-          <!-- Display current image if available -->
-          <div v-if="questionToEdit.image" class="mb-4">
-  <label class="block mb-2 text-sm font-medium text-gray-900">Aktuelles Bild:</label>
-  <img :src="getImageUrl(questionToEdit.image)" alt="Fragenbild" class="w-full h-32 object-cover rounded-lg mb-2" />
+      <form @submit.prevent="updateQuestion" class="space-y-4">
+        
+        <!-- Fragetext -->
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-900">Fragetext:</label>
+          <input v-model="questionToEdit.text" type="text" class="w-full p-2 border rounded" required />
+        </div>
+
+        <!-- Aktuelles Bild -->
+        
+
+        <!-- Neues Bild hochladen -->
+        <div class="mb-4">
+          <label class="block mb-2 text-sm font-medium text-gray-900">Bild ändern:</label>
+          <input type="file" @change="handleImageUpload" class="w-full p-2 border rounded" accept="image/*" />
+        </div>
+
+        <!-- Antwortmöglichkeiten -->
+        <div class="mb-4">
+          <label class="block mb-2 text-sm font-medium text-gray-900">Antwortmöglichkeiten:</label>
+          <div v-for="(option, index) in questionToEdit.options" :key="index" class="mb-2">
+            <input v-model="option.text" type="text" class="w-full p-2 border rounded mb-1" required />
+            <label class="flex items-center">
+              <input type="checkbox" v-model="option.isCorrect" class="mr-2" />
+              Richtige Antwort
+            </label>
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex justify-end space-x-2">
+          <button type="button" @click="cancelEdit" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+            Abbrechen
+          </button>
+          <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+            Speichern
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
-          <!-- Image Upload for New Image -->
-          <div class="mb-4">
-            <label class="block mb-2 text-sm font-medium text-gray-900">Bild ändern:</label>
-            <input type="file" @change="handleImageUpload" class="w-full p-2 border rounded" accept="image/*" />
-          </div>
-
-          <div class="mb-4">
-            <label class="block mb-2 text-sm font-medium text-gray-900">Antwortmöglichkeiten:</label>
-            <div v-for="(option, index) in questionToEdit.options" :key="index" class="mb-2">
-              <input v-model="option.text" type="text" class="w-full p-2 border rounded mb-1" required />
-              <label class="flex items-center">
-                <input type="checkbox" v-model="option.isCorrect" class="mr-2" disabled />
-                Richtige Antwort
-              </label>
-            </div>
-          </div>
-
-          <div class="flex justify-end">
-            <button type="button" @click="cancelEdit" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2">
-              Abbrechen
-            </button>
-            <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-              Speichern
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -128,10 +134,7 @@ export default {
     handleImageUpload(event) {
       this.selectedImageFile = event.target.files[0];
     },
-    getImageUrl(imagePath) {
-  if (!imagePath) return ''; // Falls kein Bild vorhanden ist, nichts zurückgeben
-  return imagePath.startsWith('/uploads/') ? imagePath : `/uploads/${imagePath}`;
-},
+    
     async updateQuestion() {
       const token = localStorage.getItem('token');
       if (!token) {

@@ -45,9 +45,10 @@
 </div>
 
     <!-- Modal for Editing Quiz -->
-    <div v-if="showModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-      <div class="bg-white p-6 rounded-lg w-full max-w-lg">
-        <h2 class="text-xl font-bold mb-4">{{ modalTitle }}</h2>
+    <div v-if="showModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4">
+    <div class="bg-white rounded-lg w-full max-w-full sm:max-w-lg md:max-w-xl lg:max-w-3xl shadow-lg overflow-hidden">
+      <div class="modal-content max-h-[80vh] overflow-y-auto p-6">
+        <h2 class="text-xl font-bold mb-4 text-center">{{ modalTitle }}</h2>
         <form @submit.prevent="updateQuiz">
           <div class="mb-4">
             <label class="block mb-2 text-sm font-medium text-gray-900">Titel:</label>
@@ -62,27 +63,29 @@
             <input v-model.number="currentQuiz.timer" type="number" min="10" max="300" class="w-full p-2 border rounded" required />
           </div>
 
-          <!-- Display current image if available -->
-          <div v-if="currentQuiz.image">
-            <img :src="currentQuiz.image" alt="Quiz Bild" class="w-full h-32 object-cover rounded-lg" />
-          </div>
+          
 
-          <!-- Image Upload for New Title Image -->
+          <!-- Neues Bild hochladen -->
           <div class="mb-4">
             <label class="block mb-2 text-sm font-medium text-gray-900">Titelbild ändern:</label>
             <input type="file" @change="handleImageUpload" class="w-full p-2 border rounded" accept="image/*" />
           </div>
 
-          <!-- Fragen anzeigen und bearbeiten mit Scroll-Container -->
+          <!-- Fragen anzeigen -->
           <div class="mb-4">
             <label class="block mb-2 text-sm font-medium text-gray-900">Fragen:</label>
-            
-            <!-- Scroll-Container für Fragen -->
-            <div class="question-scroll-container">
+
+            <!-- Falls es keine Fragen gibt -->
+            <p v-if="!currentQuiz.questions || currentQuiz.questions.length === 0" class="text-gray-500 italic">
+              Keine Fragen vorhanden. Füge eine neue Frage hinzu.
+            </p>
+
+            <!-- Fragen-Container mit Scroll -->
+            <div v-else class="question-scroll-container">
               <div v-for="(question, index) in currentQuiz.questions" :key="index" class="mb-4">
                 <div class="flex justify-between items-center">
                   <input 
-                    v-model="currentQuiz.questions[index].text" 
+                    v-model="question.text" 
                     type="text" 
                     class="w-full p-2 border rounded mb-1" 
                     required 
@@ -98,7 +101,7 @@
                 </div>
                 <div v-show="question.showOptions" class="mt-2 ml-4 border-l-2 border-gray-300 pl-4">
                   <div v-for="(option, optIndex) in question.options" :key="optIndex" class="flex items-center mb-1">
-                    <p class="w-full p-2 border rounded bg-gray-100 dark:bg-gray-700 mr-2 flex items-center justify-between">
+                    <p class="w-full p-2 border rounded bg-gray-100 dark:bg-gray-700 flex items-center justify-between">
                       <span>{{ option.text }}</span>
                       <span v-if="option.isCorrect" class="text-green-600 font-semibold">✔</span>
                     </p>
@@ -118,13 +121,19 @@
             </button>
           </div>
 
-          <div class="flex justify-end">
-            <button type="button" @click="closeModal" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2">Abbrechen</button>
-            <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Speichern</button>
+          <!-- Buttons -->
+          <div class="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
+            <button type="button" @click="closeModal" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+              Abbrechen
+            </button>
+            <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+              Speichern
+            </button>
           </div>
         </form>
       </div>
     </div>
+  </div>
 
     <!-- Question Modal for Creating New Questions -->
     <question-modal v-if="showQuestionModal" @close="showQuestionModal = false" @save="addNewQuestion" />
@@ -288,9 +297,7 @@ export default {
         this.successMessage = '';
       }
     },
-    getImageUrl(imagePath) {
-    return `http://localhost:3000${imagePath}`;
-    },
+   
     async addNewQuestion(newQuestion) {
       newQuestion.showOptions = false;
       this.currentQuiz.questions.push(newQuestion);
@@ -326,6 +333,12 @@ export default {
 </script>
 
 <style scoped>
+/* Modal anpassen für Mobilgeräte */
+.modal-content {
+  max-height: 80vh; /* Maximale Höhe auf 80% des Viewports begrenzen */
+  overflow-y: auto; /* Scrollbar aktivieren, wenn nötig */
+  padding: 20px;
+}
 .container {
   max-width: 800px;
   margin: 0 auto;
@@ -342,5 +355,11 @@ export default {
   padding: 10px;
   background-color: #f9fafb; /* Optional: Hintergrundfarbe */
   border-radius: 5px;
+}
+/* Responsives Design */
+@media (max-width: 640px) {
+  .modal-content {
+    max-height: 90vh; /* Auf kleineren Bildschirmen mehr Höhe erlauben */
+  }
 }
 </style>

@@ -175,7 +175,7 @@ io.on('connection', (socket) => {
       currentQuestionIndex: 0, 
       quizId, // Speichere quizId im Raum
       responses: {}, 
-      timer: 30,
+      timer: 5,
       allPlayersFinished: false // Status, ob alle Spieler fertig sind 
     };
     socket.join(roomCode);
@@ -208,7 +208,7 @@ io.on('connection', (socket) => {
       room.questions = quiz.questions;
       room.currentQuestionIndex = 0;
       room.responses = {}; // Antworten zurücksetzen
-      room.timer = 30; // Timer starten
+      room.timer = 5; // Timer starten
 
       const firstQuestion = room.questions[room.currentQuestionIndex];
       io.to(roomCode).emit("next-question", { question: firstQuestion, timer: room.timer, quizId: room.quizId });
@@ -235,7 +235,7 @@ io.on('connection', (socket) => {
          // Speichere nach jeder Frage
         
           room.currentQuestionIndex++;
-          room.timer = 30;
+          room.timer = 5;
           room.responses = {}; // Antworten für nächste Frage zurücksetzen
         
           const nextQuestion = room.questions[room.currentQuestionIndex];
@@ -328,7 +328,7 @@ io.on('connection', (socket) => {
       userAnswers.forEach(answer => {
         if (correctAnswers.includes(answer.answerText)) {
           
-          user.score += 100;
+          user.score += 1000;
         }
       });
     });
