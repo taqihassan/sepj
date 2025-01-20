@@ -175,7 +175,8 @@ io.on('connection', (socket) => {
       currentQuestionIndex: 0, 
       quizId, // Speichere quizId im Raum
       responses: {}, 
-      timer: 30 
+      timer: 30,
+      allPlayersFinished: false // Status, ob alle Spieler fertig sind 
     };
     socket.join(roomCode);
     console.log(`Raum erstellt: ${roomCode} mit Quiz ${quizId}`);
@@ -189,7 +190,7 @@ io.on('connection', (socket) => {
       socket.emit('room-error', 'Raum nicht gefunden');
       return;
     }
-    room.users.push({ id: socket.id, username, score: 0 });
+    room.users.push({ id: socket.id, username, score: 0, finished: false });
     socket.join(roomCode);
     io.to(roomCode).emit('user-joined', { username, users: room.users, quizId: room.quizId });
   });
@@ -243,7 +244,14 @@ io.on('connection', (socket) => {
           startQuestionTimer(roomCode);
         } else {
           saveResultsToDB(roomCode); // Letzte Speicherung nach der letzten Frage
+          room.allPlayersFinished = true; // Markiere den Status, dass alle Spieler fertig sind
           io.to(roomCode).emit("quiz-finished", { results: room.users });
+          // Sende Leaderboard nur an den Host
+          const leaderboard = room.users
+            .sort((a, b) => b.score - a.score) // Sortiere Spieler nach Punkten
+            .slice(0, 2); // Top 2 Spieler
+          
+          io.to(roomCode).emit("leaderboard-ready", { leaderboard });
           delete activeRooms[roomCode];
         }
         

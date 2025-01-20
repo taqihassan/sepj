@@ -140,6 +140,9 @@ export default {
       if (this.socket) {
         this.socket.emit("start-quiz", this.roomCode);
         alert("Quiz gestartet!");
+
+        // Navigiere zur host.vue-Seite
+        window.location.href = `/host?roomCode=${this.roomCode}`;
       }
     },
   },
