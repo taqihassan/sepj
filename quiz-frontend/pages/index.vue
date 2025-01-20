@@ -54,6 +54,19 @@ export default {
 };
 </script>
 
+
 <style scoped>
-/* Keine benutzerdefinierten Styles erforderlich, alle Stile basieren auf Tailwind CSS */
+/* Für eine bessere Zentrierung der Inhalte */
+h1 {
+  font-size: 2.5rem;
+  line-height: 3rem;
+}
+
+button {
+  transition: all 0.3s ease-in-out;
+}
+
+.bg-gray-100 {
+  background-color: #f7fafc;
+}
 </style>

@@ -98,6 +98,21 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
+app.get('/api/validate-token', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1]; // Extrahiert den Token aus dem Header
+
+  if (!token) {
+    return res.status(401).json({ valid: false, message: 'Kein Token bereitgestellt' });
+  }
+
+  try {
+    jwt.verify(token, 'your_secret_key');
+    res.status(200).json({ valid: true });
+  } catch (error) {
+    res.status(401).json({ valid: false, message: 'Ungültiges Token' });
+  }
+});
+
 
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;

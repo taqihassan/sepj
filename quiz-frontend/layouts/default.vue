@@ -68,18 +68,35 @@ export default {
     };
   },
   mounted() {
-    this.checkLoginStatus();
-    window.addEventListener('loginStatusChanged', this.checkLoginStatus);
-  },
-  beforeDestroy() {
-    window.removeEventListener('loginStatusChanged', this.checkLoginStatus);
-  },
+  this.checkLoginStatus(); // Überprüft den Login-Status direkt beim Mounten
+  window.addEventListener('loginStatusChanged', this.checkLoginStatus);
+},
+beforeDestroy() {
+  window.removeEventListener('loginStatusChanged', this.checkLoginStatus);
+},
   methods: {
-    checkLoginStatus() {
-      // Prüft, ob ein Token vorhanden ist
-      const token = localStorage.getItem('token');
-      this.isLoggedIn = !!token;
-    },
+    async checkLoginStatus() {
+    const token = localStorage.getItem('token');
+    
+    // Überprüfen, ob ein Token vorhanden ist
+    if (token) {
+      try {
+        // OPTIONAL: Anfrage zur Validierung des Tokens
+        const response = await this.$axios.get('/api/validate-token', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        this.isLoggedIn = response.data.valid; // Setzt isLoggedIn basierend auf der Serverantwort
+      } catch (error) {
+        console.error('Token-Validierung fehlgeschlagen:', error);
+        this.isLoggedIn = false; // Ungültiges Token
+        localStorage.removeItem('token'); // Entfernt das ungültige Token
+      }
+    } else {
+      this.isLoggedIn = false; // Kein Token vorhanden
+    }
+
+    console.log('Login Status:', this.isLoggedIn);
+  },
     logout() {
       // Entfernt das Token und leitet zur Login-Seite um
       localStorage.removeItem('token');

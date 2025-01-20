@@ -12,43 +12,37 @@ export default {
   },
   methods: {
     async login(event) {
-      // Verhindert das automatische Neuladen der Seite beim Abschicken des Formulars
-      event.preventDefault();
-      console.log('Login-Daten werden gesendet:', { email: this.email, password: this.password });
+  event.preventDefault();
+  console.log('Login-Daten werden gesendet:', { email: this.email, password: this.password });
 
-      try {
-        const response = await this.$axios.post('/api/login', {
+  try {
+    const response = await this.$axios.post('/api/login', {
       email: this.email,
       password: this.password,
-      });
+    });
 
-        console.log('Login erfolgreich:', response.data);
+    console.log('Login erfolgreich:', response.data);
 
-        // Token und Username speichern
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('username', response.data.username); // Speichert den Benutzernamen
-        window.dispatchEvent(new Event('loginStatusChanged'));
+    // Überprüfen, ob die Serverantwort gültig ist
+    if (response.data && response.data.token) {
+      // Token und Username speichern
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('username', response.data.username);
+      window.dispatchEvent(new Event('loginStatusChanged'));
 
-        // Weiterleitung zu einer geschützten Seite (z.B. Dashboard)
-        this.$router.push('/');
-      } catch (error) {
-        // Debugging-Logs für Fehler
-        console.error('Fehler beim Login:', error);
-        if (error.response) {
-          console.error('Antwort vom Server:', error.response.data);
-          console.error('Status:', error.response.status);
-          console.error('Header:', error.response.headers);
-        } else if (error.request) {
-          console.error('Keine Antwort vom Server erhalten:', error.request);
-        } else {
-          console.error('Fehler beim Konfigurieren der Anfrage:', error.message);
-        }
+      // Weiterleitung zu einer geschützten Seite (z. B. Dashboard)
+      this.$router.push('/');
+    } else {
+      throw new Error('Ungültige Serverantwort');
+    }
+  } catch (error) {
+    console.error('Fehler beim Login:', error);
 
-        // Setze die Fehlermeldung und zeige das Pop-up an
-        this.showError = true;
-        this.errorMessage = error.response?.data?.message || 'Ein unbekannter Fehler ist aufgetreten';
-      }
-    },
+    // Fehlerbehandlung
+    this.showError = true;
+    this.errorMessage = error.response?.data?.message || 'Ein unbekannter Fehler ist aufgetreten';
+  }
+},
     closeModal() {
       this.showError = false; // Pop-up schließen
     },
